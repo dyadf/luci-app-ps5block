@@ -66,7 +66,7 @@ function layerRow(name, desc, l, details) {
 	return E('tr', { 'class': 'tr' }, [
 		E('td', { 'class': 'td', 'style': 'width:22%' }, E('strong', {}, name)),
 		E('td', { 'class': 'td', 'style': 'width:12%' }, state),
-		E('td', { 'class': 'td' }, [ E('div', {}, desc), details ? E('div', { 'style': 'opacity:.8;font-size:90%' }, details) : '' ])
+		E('td', { 'class': 'td' }, [ E('div', {}, desc), details ? E('div', { 'style': 'opacity:.8;font-size:90%' }, Array.isArray(details) ? details : [ details ]) : '' ])
 	]);
 }
 
@@ -80,8 +80,11 @@ return view.extend({
 
 	consoleAction: function(mac, action, name) {
 		return callConsole(mac, action, name || '').then(function(res) {
-			if (res && res.result !== 0)
-				ui.addNotification(null, E('p', _('Failed: %s').format(res.error || res.result)), 'danger');
+			if (res && res.result !== 0) {
+				/* keep the page so the message stays visible */
+				ui.addNotification(null, E('p', [ _('Failed: %s').format(res.error || res.result) ]), 'danger');
+				return;
+			}
 			window.location.reload();
 		});
 	},
@@ -90,8 +93,8 @@ return view.extend({
 		var self = this;
 
 		if (!st || st._error || st.version === undefined)
-			return E('div', { 'class': 'alert-message warning' },
-				_('Status is not available (%s). Try reloading the page; if it persists, run "/etc/init.d/rpcd restart" on the router.').format(st && st._error ? st._error : 'rpcd'));
+			return E('div', { 'class': 'alert-message warning' }, [
+				_('Status is not available (%s). Try reloading the page; if it persists, run "/etc/init.d/rpcd restart" on the router.').format(st && st._error ? st._error : 'rpcd') ]);
 
 		var L = st.layers || {}, consoles = st.consoles || [], global = st.mode === 'global';
 		var blocked = consoles.filter(function(c) { return c.active; }).length;
@@ -117,7 +120,7 @@ return view.extend({
 			E('button', { 'class': 'cbi-button cbi-button-action', 'click': ui.createHandlerFn(this, function() {
 				return callApply().then(function() { ui.addNotification(null, E('p', _('Rules re-applied.')), 'info'); return self.updateStatus(); });
 			}) }, _('Re-apply rules')),
-			E('span', { 'style': 'opacity:.7' }, _('Mode: %s').format(global ? _('whole network') : _('consoles by MAC')) + ' · v' + st.version)
+			E('span', { 'style': 'opacity:.7' }, [ _('Mode: %s').format(global ? _('whole network') : _('consoles by MAC')) + ' · v' + st.version ])
 		]);
 
 		var out = [ head ];
@@ -125,10 +128,10 @@ return view.extend({
 		/* ---- warnings ---- */
 		(st.warnings || []).forEach(function(w) {
 			var info = String(w).indexOf('podkop_strict') === 0;
-			out.push(E('div', { 'class': 'alert-message ' + (info ? 'info' : 'warning'), 'style': 'margin:6px 0' }, warningText(w)));
+			out.push(E('div', { 'class': 'alert-message ' + (info ? 'info' : 'warning'), 'style': 'margin:6px 0' }, [ warningText(w) ]));
 		});
 		if (st.error)
-			out.push(E('div', { 'class': 'alert-message error' }, [ E('strong', {}, _('nftables error:')), E('pre', { 'style': 'white-space:pre-wrap' }, st.error) ]));
+			out.push(E('div', { 'class': 'alert-message error' }, [ E('strong', {}, _('nftables error:')), E('pre', { 'style': 'white-space:pre-wrap' }, [ st.error ]) ]));
 
 		/* ---- consoles ---- */
 		var ct = E('table', { 'class': 'table' }, [
@@ -164,11 +167,11 @@ return view.extend({
 			}
 
 			ct.appendChild(E('tr', { 'class': 'tr' }, [
-				E('td', { 'class': 'td' }, E('strong', {}, consoleLabel(c))),
-				E('td', { 'class': 'td' }, E('code', {}, c.mac.toUpperCase())),
-				E('td', { 'class': 'td' }, c.ip !== '-' ? c.ip : '—'),
+				E('td', { 'class': 'td' }, E('strong', {}, [ consoleLabel(c) ])),
+				E('td', { 'class': 'td' }, E('code', {}, [ c.mac.toUpperCase() ])),
+				E('td', { 'class': 'td' }, [ c.ip !== '-' ? c.ip : '—' ]),
 				E('td', { 'class': 'td' }, c.online ? badge('ok', _('online')) : badge('off', _('offline'))),
-				E('td', { 'class': 'td' }, how),
+				E('td', { 'class': 'td' }, [ how ]),
 				E('td', { 'class': 'td' }, state),
 				E('td', { 'class': 'td' }, actions)
 			]));

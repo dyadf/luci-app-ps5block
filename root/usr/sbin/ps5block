@@ -1,12 +1,13 @@
 #!/bin/sh
 # ps5block - PlayStation 5 system update blocker for OpenWrt (nftables / fw4)
-# https://github.com/ (see README)  License: MIT
+# https://github.com/arsutov/luci-app-ps5block
+# SPDX-License-Identifier: MIT
 #
 # Own nftables table "inet ps5block" with hooks that run BEFORE podkop
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
@@ -55,6 +56,16 @@ layer() {
 }
 
 join_comma() { awk 'NF { printf "%s%s", (n++ ? ", " : ""), $0 }'; }
+
+# refresh interval in minutes, sanitized (LuCI allows 5..1440)
+interval() {
+	local i
+	i="$(cfg refresh_interval 20)"
+	case "$i" in ''|*[!0-9]*) i=20 ;; esac
+	[ "$i" -lt 5 ] && i=5
+	[ "$i" -gt 1440 ] && i=1440
+	echo "$i"
+}
 lower() { tr 'ABCDEF' 'abcdef'; }
 table_exists() { nft list table inet "$TABLE" >/dev/null 2>&1; }
 
@@ -97,7 +108,8 @@ detect_consoles() {
 
 is_console() { # mac [hostname]
 	local mac host
-	mac="$(echo "$1" | lower)"; host="$(echo "$2" | lower)"
+	# hostnames need full lowercase ("PS5-123"), lower() only covers hex digits
+	mac="$(echo "$1" | lower)"; host="$(echo "$2" | tr 'A-Z' 'a-z')"
 	grep -qx "$(echo "$mac" | cut -c1-8)" "$OUI_FILE" 2>/dev/null && return 0
 	case "$host" in *ps5*|*playstation*|*ps-5*) return 0 ;; esac
 	return 1
@@ -159,7 +171,9 @@ dns_sync() { # $1 = 1 to install entries, 0 to remove
 			case "$cur" in *" /$d/ "*) ;; *) uci add_list "dhcp.$s.address=/$d/"; changed=1 ;; esac
 		done
 	done
-	if [ -n "$want" ]; then echo "$want" > "$DNS_STATE"; else rm -f "$DNS_STATE"; fi
+	# /etc is on flash: write the state file only when it changes
+	if [ -z "$want" ]; then rm -f "$DNS_STATE"
+	elif [ "$want" != "$have" ]; then echo "$want" > "$DNS_STATE"; fi
 	if [ "$changed" = "1" ]; then
 		uci commit dhcp
 		/etc/init.d/dnsmasq restart >/dev/null 2>&1
@@ -311,7 +325,9 @@ resolve_updates() {
 					for t in a aaaa; do
 						nslookup -type=$t "$h" "$srv" 2>/dev/null
 					done
-				done | awk '/^Name:/ { f = 1; next }
+				# several nslookup outputs in one stream: the "Server:/Address:"
+				# header of each one must not be taken for an answer
+				done | awk '/^Server:/ { f = 0; next } /^Name:/ { f = 1; next }
 					f && /^Address/ { sub(/^Address[ 0-9]*:[ \t]*/, ""); split($0, a, " "); print a[1] }' > "$tmp/$h"
 			) &
 		done
@@ -364,6 +380,15 @@ do_refresh() {
 		log "refresh: could not resolve update servers, keeping previous list"
 		return 0
 	fi
+	# a family with no answer keeps its previous list
+	[ -n "$v4" ] || v4="$(cat "$STATE_DIR/upd4" 2>/dev/null)"
+	[ -n "$v6" ] || v6="$(cat "$STATE_DIR/upd6" 2>/dev/null)"
+	if [ "$v4" = "$(cat "$STATE_DIR/upd4" 2>/dev/null)" ] && [ "$v6" = "$(cat "$STATE_DIR/upd6" 2>/dev/null)" ] && \
+		[ -s "$STATE_DIR/refreshed" ]; then
+		# unchanged: nothing to load, no log line every few minutes
+		date +%s > "$STATE_DIR/refreshed"
+		return 0
+	fi
 	if table_exists; then
 		if ! {
 			[ -n "$v4" ] && { echo "flush set inet $TABLE upd4"; echo "add element inet $TABLE upd4 { $v4 }"; }
@@ -408,19 +433,19 @@ valid_ip6() {
 
 # ------------------------------------------------------------------- cron --
 cron_sync() { # $1 = 1 install, 0 remove
-	local i want cur
-	i="$(cfg refresh_interval 20)"
-	case "$i" in ''|*[!0-9]*) i=20 ;; esac
-	[ "$i" -lt 5 ] && i=5
-	if [ "$i" -ge 60 ]; then want="$((i % 60)) */$(( i / 60 > 23 ? 23 : i / 60 )) * * *"; else want="*/$i * * * *"; fi
-	want="$want /usr/sbin/ps5block refresh >/dev/null 2>&1 $CRON_TAG"
-	[ "$1" = "1" ] || want=""
-	touch "$CRON_FILE"
+	local i want="" cur
+	if [ "$1" = "1" ]; then
+		i="$(interval)"
+		# cron cannot express every N minutes for N >= 60: run every N/60 hours
+		if [ "$i" -ge 60 ]; then want="$((i % 60)) */$(( i / 60 > 23 ? 23 : i / 60 )) * * *"; else want="*/$i * * * *"; fi
+		want="$want /usr/sbin/ps5block refresh >/dev/null 2>&1 $CRON_TAG"
+	fi
+	[ -f "$CRON_FILE" ] || { [ -n "$want" ] || return 0; mkdir -p "${CRON_FILE%/*}"; touch "$CRON_FILE"; }
 	cur="$(grep -F "$CRON_TAG" "$CRON_FILE")"
 	[ "$cur" = "$want" ] && return 0
 	{ grep -vF "$CRON_TAG" "$CRON_FILE"; [ -n "$want" ] && echo "$want"; } > "$CRON_FILE.ps5block"
 	mv "$CRON_FILE.ps5block" "$CRON_FILE"
-	/etc/init.d/cron enable >/dev/null 2>&1
+	[ -n "$want" ] && /etc/init.d/cron enable >/dev/null 2>&1
 	/etc/init.d/cron restart >/dev/null 2>&1
 }
 
@@ -459,7 +484,7 @@ do_apply() {
 		local age now last
 		now="$(date +%s)"; last="$(cat "$STATE_DIR/refreshed" 2>/dev/null || echo 0)"
 		age=$(( now - last ))
-		[ "$age" -gt $(( $(cfg refresh_interval 20) * 60 )) ] && \
+		[ "$age" -gt $(( $(interval) * 60 )) ] && \
 			( QUIET=1 /usr/sbin/ps5block refresh >/dev/null 2>&1 & )
 	fi
 	return 0
@@ -561,7 +586,7 @@ EOF
 		json_add_object dns
 			json_add_boolean enabled "$(layer dns_block)"
 			dns_entry_present && json_add_boolean active 1 || json_add_boolean active 0
-			if [ "$enabled" = "1" ]; then json_add_string test "$(dns_test)"; else json_add_string test "skipped"; fi
+			if [ "$enabled" = "1" ] && [ "$(layer dns_block)" = "1" ]; then json_add_string test "$(dns_test)"; else json_add_string test "skipped"; fi
 		json_close_object
 		json_add_object force_dns
 			json_add_boolean enabled "$(layer force_dns)"
@@ -599,7 +624,7 @@ EOF
 			json_add_int v4 "$(set_count upd4)"
 			json_add_int v6 "$(set_count upd6)"
 			json_add_int refreshed "$(cat "$STATE_DIR/refreshed" 2>/dev/null || echo 0)"
-			json_add_int interval "$(cfg refresh_interval 20)"
+			json_add_int interval "$(interval)"
 		json_close_object
 	json_close_object
 
