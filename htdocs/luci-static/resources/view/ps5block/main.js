@@ -99,14 +99,22 @@ return view.extend({
 		});
 	},
 
-	sendPayload: function(target, label) {
+	sendPayload: function(target, label, port) {
+		port = port || 9021;
 		return callPayloadPrepare().then(function() {
 			return ui.uploadFile(PAYLOAD_PATH);
 		}).then(function(info) {
 			var size = (info && info.size) || 0;
+			/* the backend checks the port before it transmits to the console,
+			   so a closed port means nothing was sent (the upload is removed) */
 			return callPayloadSend(target, 'upload.bin').then(function(res) {
-				if (res && res.result === 0)
+				var st = res && res.status;
+				if (st === 'sent' || (res && res.result === 0))
 					ui.addNotification(null, E('p', [ _('Payload sent to %s (%d bytes) and deleted from the router.').format(label, size) ]), 'info');
+				else if (st === 'closed')
+					ui.addNotification(null, E('p', [ _('The payload loader is not listening on port %d of %s; nothing was sent. Start the loader on the console and try again.').format(port, target) ]), 'warning');
+				else if (st === 'no_ip')
+					ui.addNotification(null, E('p', [ _('No IP address for this console; turn it on and connect it to this router.') ]), 'warning');
 				else
 					ui.addNotification(null, E('p', [ _('Sending the payload failed: %s').format((res && (res.error || res.result)) || '?') ]), 'danger');
 			});
@@ -214,7 +222,7 @@ return view.extend({
 				actions.push(' ', E('button', {
 					'class': 'cbi-button cbi-button-action',
 					'title': _('Upload a homebrew payload (ELF/bin) and send it to this console on port %d. The console must already run a payload loader. The file is deleted from the router right after sending.').format(st.payload_port || 9021),
-					'click': ui.createHandlerFn(self, 'sendPayload', c.ip, consoleLabel(c))
+					'click': ui.createHandlerFn(self, 'sendPayload', c.ip, consoleLabel(c), st.payload_port || 9021)
 				}, _('Send payload')));
 			}
 

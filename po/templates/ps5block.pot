@@ -468,3 +468,6 @@ msgstr ""
 
 msgid "Port check failed."
 msgstr ""
+
+msgid "The payload loader is not listening on port %d of %s; nothing was sent. Start the loader on the console and try again."
+msgstr ""

@@ -76,19 +76,19 @@ The signature is checked on every `opkg update` / `apk update`; without the key 
 Download the `.ipk` or `.apk` from the [releases page](https://github.com/dyadf/luci-app-ps5block/releases) and copy it to the router (`-O` is needed when the router has no sftp server):
 
 ```sh
-scp -O luci-app-ps5block_1.1.1-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
-scp -O luci-app-ps5block-1.1.1-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
+scp -O luci-app-ps5block_1.1.2-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
+scp -O luci-app-ps5block-1.1.2-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
 ```
 
 On the router:
 
 ```sh
 # OpenWrt 22.03–24.10 (opkg)
-opkg install /tmp/luci-app-ps5block_1.1.1-r1_all.ipk
+opkg install /tmp/luci-app-ps5block_1.1.2-r1_all.ipk
 
 # OpenWrt 25.x and later (apk): with the key from keys/ in /etc/apk/keys/ the
 # signature is checked, without it --allow-untrusted is needed
-apk add /tmp/luci-app-ps5block-1.1.1-r1.apk
+apk add /tmp/luci-app-ps5block-1.1.2-r1.apk
 ```
 
 File checksums are in `SHA256SUMS` in the release.
@@ -138,7 +138,8 @@ Independently of the update block, the router can send a homebrew **payload** to
 
 - The console must already be running a payload loader that listens on that port (set up on the console itself, from its browser/exploit entry point). This package does not exploit or modify the console; it only transfers a file you provide to a loader that is already listening.
 - The uploaded file lives only in the router's RAM (`/tmp/ps5block-payload/`) and is **deleted right after it is sent**, whether the send succeeds or fails.
-- The **"Check port"** button (or `ps5block payload-check <MAC|IP>`) tells you whether the console is already listening on the payload port (open / closed / no IP), so you can confirm the loader is ready before sending. It is a manual check and is never run automatically before a send: a one-shot loader that accepts a single connection could otherwise spend it on the probe.
+- **The port is checked automatically before sending.** The payload is transmitted to the console only if its loader is listening on the port; otherwise nothing is sent and the uploaded file is removed. You can also check on demand with the **"Check port"** button or `ps5block payload-check <MAC|IP>` (open / closed / no IP).
+- A loader that accepts only a **single** connection would spend it on the automatic check. For such a loader, send from the command line with the check disabled: `PS5BLOCK_SKIP_PORTCHECK=1 ps5block payload <MAC|IP> <file>`.
 - From the command line: `ps5block payload <MAC|IP> <file>` (the file must be in `/tmp/ps5block-payload/`).
 
 This is meant for your own console on your own network.
@@ -227,7 +228,7 @@ JSHN=/path/to/jshn.sh PATH=/path/to/openwrt-host-tools/bin:$PATH tests/run.sh
 node tests/view.test.js
 ```
 
-`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (120 checks).
+`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (123 checks).
 
 The package was also tested in an emulated OpenWrt environment: busybox ash, the real `uci`, `jshn`, `jsonfilter`, `opkg` and `apk` 3.0 built from OpenWrt sources, the real `nft` with a Linux kernel; installation, reinstallation and removal with opkg and apk, installation from the signed apk feed; rendering of the LuCI page in English and Russian.
 

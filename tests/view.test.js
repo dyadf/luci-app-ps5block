@@ -31,14 +31,15 @@ const _ = s => s;
 
 const notifications = [];
 let lastUpload = null;
+let payloadStatus = 'sent';   // tests flip this to exercise the closed-port path
 const L = {
 	ui: {
 		createHandlerFn: () => () => {}, addNotification: (t, n) => notifications.push(n),
 		uploadFile: path => { lastUpload = path; return Promise.resolve({ name: 'upload.bin', size: 4096 }); },
 	},
-	// payload send succeeds; port check reports open; anything else fails with hostile text
+	// payload send returns a status; port check reports open; anything else fails with hostile text
 	rpc: { declare: d => () => Promise.resolve(
-		d.method === 'payload' ? { result: 0 } :
+		d.method === 'payload' ? { result: payloadStatus === 'sent' ? 0 : 1, status: payloadStatus } :
 		d.method === 'payload_check' ? { status: 'open', ip: '192.168.1.50', port: 9021 } :
 		{ result: 1, error: 'invalid MAC: ' + EVIL }) },
 };
@@ -115,11 +116,19 @@ t('checkPort reports the status without throwing', () => {
 	});
 });
 t('sendPayload uploads then sends and reports success as text', () => {
-	htmlSinks.length = 0; notifications.length = 0; lastUpload = null;
-	return view.sendPayload('192.168.1.50', EVIL).then(() => {
+	htmlSinks.length = 0; notifications.length = 0; lastUpload = null; payloadStatus = 'sent';
+	return view.sendPayload('192.168.1.50', EVIL, 9021).then(() => {
 		if (lastUpload !== '/tmp/ps5block-payload/upload.bin') throw new Error('wrong upload path: ' + lastUpload);
 		if (!notifications.length) throw new Error('no notification');
 		if (htmlSinks.some(h => h.includes(EVIL))) throw new Error('label reached innerHTML');
+	});
+});
+t('sendPayload reports closed port (auto-check) without throwing or injecting', () => {
+	htmlSinks.length = 0; notifications.length = 0; payloadStatus = 'closed';
+	return view.sendPayload('192.168.1.50', EVIL, 9021).then(() => {
+		payloadStatus = 'sent';
+		if (!notifications.length) throw new Error('no notification');
+		if (htmlSinks.some(h => h.includes(EVIL))) throw new Error('text reached innerHTML');
 	});
 });
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.2-r1 — 2026-10-09
+
+### Fixed
+- **Payload send and port check failed on a real router** with a busybox `nc` usage error.
+  OpenWrt's busybox `nc` is the minimal build (`nc IPADDR PORT`, no `-w`); the code now
+  bounds `nc` with the `timeout` applet instead of passing `-w`.
+
+### Changed
+- **The port is now checked automatically before a payload is sent.** Nothing is transmitted
+  to the console unless its loader is listening; otherwise the upload is removed and the LuCI
+  page reports the closed port. For a one-shot loader, send from the CLI with
+  `PS5BLOCK_SKIP_PORTCHECK=1`. `ps5block payload` exit codes: 0 sent, 3 no IP, 4 port closed.
+
 ## 1.1.1-r1 — 2026-10-09
 
 ### Added

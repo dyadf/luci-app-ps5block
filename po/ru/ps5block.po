@@ -470,3 +470,6 @@ msgstr "У этой консоли нет IP-адреса; включите её
 
 msgid "Port check failed."
 msgstr "Не удалось проверить порт."
+
+msgid "The payload loader is not listening on port %d of %s; nothing was sent. Start the loader on the console and try again."
+msgstr "Загрузчик пейлоадов не слушает порт %d на %s; ничего не отправлено. Запустите загрузчик на консоли и повторите."

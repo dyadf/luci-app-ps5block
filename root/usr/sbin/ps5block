@@ -7,7 +7,7 @@
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.1.1"
+VERSION="1.1.2"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
@@ -563,24 +563,47 @@ do_payload() { # <mac|ip> <filename in PAYLOAD_DIR>
 	file="$PAYLOAD_DIR/$name"
 	[ -f "$file" ] || { echo "payload not found: $name" >&2; return 2; }
 	ip="$(payload_ip "$target")" || { echo "invalid target: $target" >&2; rm -f "$file"; return 2; }
-	[ -n "$ip" ] || { echo "no IP for $target (turn the console on / check DHCP leases)" >&2; rm -f "$file"; return 2; }
+	[ -n "$ip" ] || { echo "no IP for $target (turn the console on / check DHCP leases)" >&2; rm -f "$file"; return 3; }
 	command -v nc >/dev/null 2>&1 || { echo "nc not found" >&2; rm -f "$file"; return 1; }
 	port="$(payload_port)"
+	# automatic pre-send check: do not transmit to the console unless its loader
+	# is listening. Set PS5BLOCK_SKIP_PORTCHECK=1 for a one-shot loader that would
+	# otherwise spend its single accepted connection on this probe.
+	if [ "${PS5BLOCK_SKIP_PORTCHECK:-0}" != "1" ]; then
+		if ! port_open "$ip" "$port"; then
+			echo "port $ip:$port closed, not sending (start the loader on the console, or set PS5BLOCK_SKIP_PORTCHECK=1)" >&2
+			rm -f "$file"
+			log "payload '$name' not sent: $ip:$port closed; removed from router"
+			return 4
+		fi
+	fi
 	sz="$(wc -c < "$file" 2>/dev/null)"
 	log "sending payload '$name' ($sz bytes) to $ip:$port"
-	nc -w "${PS5BLOCK_NC_TIMEOUT:-10}" "$ip" "$port" < "$file"
+	nc_to "${PS5BLOCK_NC_TIMEOUT:-15}" "$ip" "$port" < "$file"
 	rc=$?
+	# the file is written once connected; a timeout-kill after that still counts as sent
+	case "$rc" in 124|137|143) rc=0 ;; esac
 	rm -f "$file"                                 # temporary upload: never kept on the router
 	if [ "$rc" = 0 ]; then log "payload '$name' sent to $ip:$port, removed from router"
 	else log "payload '$name' to $ip:$port failed (rc=$rc), removed from router"; fi
 	return $rc
 }
 
-# is a TCP port open on the console? one connect, no data sent (EOF on stdin).
-# NOTE: a one-shot loader that accepts a single connection may consume this
-# probe, so it is an explicit action, never run automatically before a send.
+# busybox nc on OpenWrt is the minimal build: "nc [IPADDR PORT]", no -w/-l/-z.
+# Bound it with the timeout applet instead so it never hangs.
+nc_to() { # secs ip port   (reads stdin, writes stdout)
+	if command -v timeout >/dev/null 2>&1; then timeout "$1" nc "$2" "$3"
+	else nc "$2" "$3"; fi
+}
+
+# is a TCP port open on the console? connect, send nothing (EOF on stdin).
+# rc: refused/unreachable -> fast non-zero (1/2); connected -> the remote closes
+# (0) or the timeout kills nc (124/137/143) - both mean the port is open.
 port_open() { # ip port
-	nc -w "${PS5BLOCK_NC_TIMEOUT:-3}" "$1" "$2" </dev/null >/dev/null 2>&1
+	local rc
+	nc_to "${PS5BLOCK_NC_TIMEOUT:-4}" "$1" "$2" </dev/null >/dev/null 2>&1
+	rc=$?
+	case "$rc" in 0|124|137|143) return 0 ;; *) return 1 ;; esac
 }
 
 # JSON: { status: open|closed|no_ip, ip, port }. rc 0 open, 1 closed, 3 no_ip.

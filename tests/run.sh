@@ -388,29 +388,36 @@ if [ -x "$IP" ] && [ -x "$NSENTER" ] && "$IP" link add br-lan type bridge 2>/dev
 	check "phone: not touched" "[ \"\$(cnt doh4)\" = '$d1' ] && [ \"\$(cnt dot)\" = '$t1' ] && [ \"\$(cnt force_dns)\" = '$f1' ]"
 	check "status: packet counters" "[ \"\$(J '@.layers.dot.packets')\" -gt 0 ]"
 
-	# payload delivery: a loader on the console listens on 9021, the router sends a file
+	# raw delivery (skip the auto-check so one listener is enough): loader on 9021
 	mkdir -p "$TR/payload"; printf 'ELF-PAYLOAD-TEST-9021' > "$TR/payload/upload.bin"
 	: > "$TR/recv"
 	inns console "$BB" nc -l -p 9021 -w 4 > "$TR/recv" 2>/dev/null &
 	sleep 0.5
-	PS5BLOCK_NC_TIMEOUT=3 P payload "$PS5" upload.bin
+	PS5BLOCK_SKIP_PORTCHECK=1 PS5BLOCK_NC_TIMEOUT=3 P payload "$PS5" upload.bin
 	sleep 0.5
 	check "payload delivered to the console loader" "grep -q ELF-PAYLOAD-TEST-9021 '$TR/recv'"
 	check "payload deleted from the router after sending" "[ ! -e '$TR/payload/upload.bin' ]"
-	# send by IP and to the configured non-default port
-	U set ps5block.main.payload_port=9022; U commit ps5block
-	printf 'PORT-9022-OK' > "$TR/payload/upload.bin"; : > "$TR/recv"
-	inns console "$BB" nc -l -p 9022 -w 4 > "$TR/recv" 2>/dev/null &
+	# auto-check before send: closed port -> nothing sent, upload removed, rc 4
+	printf 'SHOULD-NOT-ARRIVE' > "$TR/payload/upload.bin"; : > "$TR/recv"
+	PS5BLOCK_NC_TIMEOUT=2 P payload "$PS5" upload.bin; prc=$?
+	check "auto-check: closed port returns code 4" "[ '$prc' = 4 ]"
+	check "auto-check: nothing delivered when port is closed" "[ ! -s '$TR/recv' ]"
+	check "auto-check: upload removed even when not sent" "[ ! -e '$TR/payload/upload.bin' ]"
+	# auto-check passes then sends, with a persistent listener (probe + send = 2 connections)
+	printf 'AUTO-CHECK-THEN-SEND' > "$TR/payload/upload.bin"; : > "$TR/recv"
+	inns console "$BB" sh -c "while $BB nc -l -p 9021 -w 6 >> '$TR/recv'; do :; done" &
+	lpid=$!; sleep 0.5
+	PS5BLOCK_NC_TIMEOUT=3 P payload "$PS5" upload.bin
 	sleep 0.5
-	PS5BLOCK_NC_TIMEOUT=3 P payload 192.168.1.50 upload.bin
-	sleep 0.5
-	check "payload to an IP on a custom port" "grep -q PORT-9022-OK '$TR/recv'"
-	U set ps5block.main.payload_port=9021; U commit ps5block
-	# port status check: open with a listener, closed without one
+	check "auto-check: open port -> payload delivered" "grep -q AUTO-CHECK-THEN-SEND '$TR/recv'"
+	kill $lpid 2>/dev/null
+	# explicit payload-check: open with a listener, closed without one
 	inns console "$BB" nc -l -p 9021 -w 4 >/dev/null 2>&1 &
 	sleep 0.5
 	check "payload-check: listener present reports open" "[ \"\$(PS5BLOCK_NC_TIMEOUT=3 P payload-check $PS5 | jsonfilter -e '@.status')\" = open ]"
+	U set ps5block.main.payload_port=9099; U commit ps5block
 	check "payload-check: no listener on a free port reports closed" "[ \"\$(PS5BLOCK_NC_TIMEOUT=2 P payload-check 192.168.1.50 | jsonfilter -e '@.status')\" = closed ]"
+	U set ps5block.main.payload_port=9021; U commit ps5block
 	kill $pids 2>/dev/null
 else
 	echo "  skip (cannot create a bridge here)"

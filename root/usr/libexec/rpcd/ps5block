@@ -61,8 +61,10 @@ call)
 		read -r input
 		json_load "$input"
 		json_get_var target target; json_get_var name name
-		err="$(/usr/sbin/ps5block payload "$target" "$name" 2>&1 >/dev/null)"
-		ok $? "$err"
+		err="$(/usr/sbin/ps5block payload "$target" "$name" 2>&1 >/dev/null)"; rc=$?
+		case "$rc" in 0) st=sent ;; 3) st=no_ip ;; 4) st=closed ;; *) st=failed ;; esac
+		json_init; json_add_int result "$rc"; json_add_string status "$st"
+		[ -n "$err" ] && json_add_string error "$err"; json_dump
 		;;
 	esac
 	;;
