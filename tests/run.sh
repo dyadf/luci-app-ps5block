@@ -195,6 +195,20 @@ dstate_before="$(cat "$TR/root/etc/ps5block.dns")"
 check "re-apply does not restart dnsmasq" "! grep -q dnsmasq '$TR/svc'"
 check "re-apply does not rewrite dns state" "[ \"\$(cat '$TR/root/etc/ps5block.dns')\" = '$dstate_before' ]"
 
+section "force DNS target (dns_server)"
+check "default: force_dns redirects to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
+check "default: status server = router" "[ \"\$(J '@.layers.force_dns.server')\" = router ]"
+U set ps5block.main.dns_server=9.9.9.9; U commit ps5block; P apply >/dev/null
+check "v4 server: DNAT to it" "ruleset | grep 'comment \"force_dns\"' | grep -q 'dnat ip to 9.9.9.9:53'"
+check "v4 server: ipv6 still forced to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
+check "v4 server: status shows it" "[ \"\$(J '@.layers.force_dns.server')\" = 9.9.9.9 ]"
+U set ps5block.main.dns_server=2620:fe::fe; U commit ps5block; P apply >/dev/null
+check "v6 server: DNAT ip6 to it" "ruleset | grep 'comment \"force_dns\"' | grep -q 'dnat ip6 to \[2620:fe::fe\]:53'"
+U set ps5block.main.dns_server=not-an-ip; U commit ps5block; P apply >/dev/null
+check "invalid server: falls back to router redirect" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53' && ! ruleset | grep 'comment \"force_dns\"' | grep -q dnat"
+U -q delete ps5block.main.dns_server; U commit ps5block; P apply >/dev/null
+check "cleared: back to router redirect" "[ \"\$(J '@.layers.force_dns.server')\" = router ]"
+
 section "update server list (L3)"
 cat > "$TR/dns" <<-'EOF'
 dus01.ps5.update.playstation.net a 23.45.67.89

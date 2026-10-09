@@ -88,19 +88,19 @@ apk update && apk add luci-app-ps5block
 Скачайте `.ipk` или `.apk` со страницы [релизов](https://github.com/dyadf/luci-app-ps5block/releases) и скопируйте на роутер (`-O` нужен, если на роутере нет sftp-сервера):
 
 ```sh
-scp -O luci-app-ps5block_1.2.1-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
-scp -O luci-app-ps5block-1.2.1-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x и новее
+scp -O luci-app-ps5block_1.3.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
+scp -O luci-app-ps5block-1.3.0-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x и новее
 ```
 
 На роутере:
 
 ```sh
 # OpenWrt 22.03–24.10 (opkg)
-opkg install /tmp/luci-app-ps5block_1.2.1-r1_all.ipk
+opkg install /tmp/luci-app-ps5block_1.3.0-r1_all.ipk
 
 # OpenWrt 25.x и новее (apk): с ключом из keys/ в /etc/apk/keys/ подпись проверяется,
 # без него нужен --allow-untrusted
-apk add /tmp/luci-app-ps5block-1.2.1-r1.apk
+apk add /tmp/luci-app-ps5block-1.3.0-r1.apk
 ```
 
 Контрольные суммы файлов — в `SHA256SUMS` в релизе.
@@ -162,6 +162,10 @@ apk add /tmp/luci-app-ps5block-1.2.1-r1.apk
 - **zapret / zapret2.** Совместим. zapret работает с исходящим трафиком в WAN, а отброшенные пакеты туда не попадают.
 - **DoH на роутере (https-dns-proxy и т. п.).** Совместим: это вышестоящий сервер для dnsmasq, а запись dnsmasq отвечает раньше.
 - **AdGuard Home.** Если он заменяет dnsmasq на порту 53, DNS-уровень не работает: добавьте `||ps5.update.playstation.net^` в его чёрный список. Остальные уровни работают.
+
+## Принудительный DNS консоли
+
+По умолчанию DNS консоли перенаправляется на dnsmasq роутера (так работает DNS-блокировка). Чтобы консоль использовала **конкретный** резолвер, задай **Уровни защиты → «Принудительный DNS на этот сервер»** (`option dns_server`). Тогда порт 53 консоли перенаправляется на этот сервер — перебивая podkop/AdGuard — и консоль всегда резолвится через выбранный тобой DNS. С не-роутерным сервером встроенная блокировка через dnsmasq к консоли не применяется; блокировка обновлений тогда держится на уровнях IP (L3) и DoT/DoH или на фильтрации самого этого сервера. (Поле «Резолверы» тут ни при чём — оно лишь говорит роутеру, какой DNS спрашивать при поиске IP серверов обновлений для L3.)
 
 ## Командная строка
 
@@ -240,7 +244,7 @@ JSHN=/path/to/jshn.sh PATH=/path/to/openwrt-host-tools/bin:$PATH tests/run.sh
 node tests/view.test.js
 ```
 
-`tests/run.sh` проверяет включение/выключение, правила nftables, dnsmasq, cron, обновление списка серверов, консоли, podkop, rpcd, hotplug, миграцию со старых скриптов и живой трафик через мост с «консолью» и «телефоном» (135 проверок).
+`tests/run.sh` проверяет включение/выключение, правила nftables, dnsmasq, cron, обновление списка серверов, консоли, podkop, rpcd, hotplug, миграцию со старых скриптов и живой трафик через мост с «консолью» и «телефоном» (143 проверок).
 
 Пакет проверялся в эмулированном окружении OpenWrt: busybox ash, настоящие `uci`, `jshn`, `jsonfilter`, `opkg` и `apk` 3.0, собранные из исходников OpenWrt, настоящий `nft` с ядром Linux; установка, переустановка и удаление через opkg и apk, установка из подписанного репозитория apk; отрисовка страницы LuCI на английском и русском.
 

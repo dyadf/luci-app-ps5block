@@ -7,7 +7,7 @@
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.2.1"
+VERSION="1.3.0"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
@@ -228,6 +228,17 @@ podkop_routed() {
 		grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}(/([0-9]|[12][0-9]|3[0-2]))?$' | sort -u
 }
 
+# optional: the DNS server the console is forced onto (instead of the router's
+# dnsmasq). Empty = router. Returns a validated IPv4/IPv6 or nothing.
+dns_server() {
+	local s
+	s="$(uci -q get ps5block.main.dns_server)"
+	[ -n "$s" ] || return 1
+	echo "$s" | grep -qE '^([0-9]{1,3}\.){3}[0-9]{1,3}$' && { echo "$s"; return 0; }
+	echo "$s" | grep -qE '^[0-9a-fA-F]{0,4}(:[0-9a-fA-F]{0,4}){2,7}$' && { echo "$s"; return 0; }
+	return 1
+}
+
 # effective strict-DNS scope: all | podkop | off
 strict_mode() {
 	local v
@@ -252,7 +263,7 @@ ip_in_list() { # ip "cidr list" -> 0 if ip is inside any entry
 }
 
 build_ruleset() {
-	local mode match devs macs u4 u6 d4 d6 pr
+	local mode match devs macs u4 u6 d4 d6 pr ds
 	mode="$(cfg mode mac)"
 	devs="$(lan_devices | awk '{ printf "%s\"%s\"", (n++ ? ", " : ""), $0 }')"
 	[ -n "$devs" ] || devs='"br-lan"'
@@ -288,8 +299,24 @@ build_ruleset() {
 	# -100 dispatcher re-redirects it away from dnsmasq and the block is bypassed.
 	echo "	chain dns_redirect {"
 	echo "		type nat hook prerouting priority -160; policy accept;"
-	[ "$(layer force_dns)" = "1" ] && \
-	echo "		$match meta l4proto { tcp, udp } th dport 53 counter redirect to :53 comment \"force_dns\""
+	if [ "$(layer force_dns)" = "1" ]; then
+		ds="$(dns_server)"
+		if [ -z "$ds" ]; then
+			# force the console onto the router's dnsmasq
+			echo "		$match meta l4proto { tcp, udp } th dport 53 counter redirect to :53 comment \"force_dns\""
+		else
+			# force the console onto a specified DNS server; the other IP family
+			# still goes to the router so the console cannot escape on it
+			case "$ds" in
+			*:*)
+				echo "		$match meta nfproto ipv6 meta l4proto { tcp, udp } th dport 53 counter dnat ip6 to [$ds]:53 comment \"force_dns\""
+				echo "		$match meta nfproto ipv4 meta l4proto { tcp, udp } th dport 53 counter redirect to :53 comment \"force_dns\"" ;;
+			*)
+				echo "		$match meta nfproto ipv4 meta l4proto { tcp, udp } th dport 53 counter dnat ip to $ds:53 comment \"force_dns\""
+				echo "		$match meta nfproto ipv6 meta l4proto { tcp, udp } th dport 53 counter redirect to :53 comment \"force_dns\"" ;;
+			esac
+		fi
+	fi
 	echo "	}"
 	echo "	chain block {"
 	echo "		type filter hook prerouting priority -170; policy accept;"
@@ -723,6 +750,7 @@ EOF
 			json_add_boolean enabled "$(layer force_dns)"
 			echo "$cnt" | grep -q '^force_dns ' && json_add_boolean active 1 || json_add_boolean active 0
 			json_add_int packets "$(pk force_dns)"
+			json_add_string server "$(dns_server || echo router)"
 		json_close_object
 		json_add_object dns_strict
 			local sm

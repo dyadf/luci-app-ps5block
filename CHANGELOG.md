@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0-r1 — 2026-10-09
+
+### Added
+- **"Force DNS to this server" (`dns_server`).** Optionally send the console's DNS to a
+  specific resolver instead of the router's dnsmasq — the console's port-53 is DNAT'd to
+  that server at priority −160, overriding podkop/AdGuard. Empty = the router (default,
+  needed for the built-in dnsmasq block). With a non-router server the dnsmasq block does
+  not apply to the console; blocking then relies on the L3/DoT/DoH layers or that server's
+  own filtering. The status page shows the active DNS target. (Note: the separate
+  "Resolvers" field only feeds the update-server IP lookup; it never changed the console's
+  DNS — this new option does.)
+
 ## 1.2.1-r1 — 2026-10-09
 
 ### Fixed (works without any manual router steps)

@@ -494,3 +494,18 @@ msgstr "Дополнительные блокируемые домены"
 
 msgid "Blocked together with all subdomains, on top of the preset above (for \"Custom\", this is the whole list)."
 msgstr "Блокируются со всеми поддоменами, в дополнение к набору выше (для «Свой список» — это весь список)."
+
+msgid "Forced to %s. "
+msgstr "Принудительно на %s. "
+
+msgid "Forced to the router. "
+msgstr "Принудительно на роутер. "
+
+msgid "Force DNS to this server"
+msgstr "Принудительный DNS на этот сервер"
+
+msgid "Send the console's DNS to this server instead of the router (overrides podkop/AdGuard). Leave empty to use the router's dnsmasq. With a non-router server the built-in DNS block does not apply to the console — blocking then relies on the IP/DoT/DoH layers or that server's own filtering."
+msgstr "Отправлять DNS консоли на этот сервер вместо роутера (перебивает podkop/AdGuard). Пусто — использовать dnsmasq роутера. С не-роутерным сервером встроенная DNS-блокировка к консоли не применяется — блокировка тогда опирается на уровни IP/DoT/DoH или на фильтрацию самого сервера."
+
+msgid "router (dnsmasq)"
+msgstr "роутер (dnsmasq)"

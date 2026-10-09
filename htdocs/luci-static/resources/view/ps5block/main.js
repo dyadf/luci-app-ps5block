@@ -253,7 +253,7 @@ return view.extend({
 
 		var lt = E('table', { 'class': 'table' }, [
 			layerRow(_('1. DNS block'), _('dnsmasq answers "domain does not exist" for the update servers.'), L.dns, dnsTest ? [ _('Check on the router: '), dnsTest ] : null),
-			layerRow(_('2. DNS redirect'), _('Any DNS request (port 53) to any server is answered by the router, so manual DNS on the console does not help.'), L.force_dns, _('Redirected requests: %d').format((L.force_dns || {}).packets || 0)),
+			layerRow(_('2. DNS redirect'), _('Any DNS request (port 53) to any server is answered by the router, so manual DNS on the console does not help.'), L.force_dns, [ (L.force_dns && L.force_dns.server && L.force_dns.server !== 'router') ? _('Forced to %s. ').format(L.force_dns.server) : _('Forced to the router. '), _('Redirected requests: %d').format((L.force_dns || {}).packets || 0) ]),
 			layerRow(_('3. Strict DNS'), _('External DNS is dropped before podkop can intercept it; the console must use the router as DNS server.'), L.dns_strict, [ strictDesc, ' ', _('Dropped: %d').format((L.dns_strict || {}).packets || 0) ]),
 			layerRow(_('4. DoT / DoQ'), _('Encrypted DNS on port 853 is dropped.'), L.dot, _('Dropped: %d').format((L.dot || {}).packets || 0)),
 			layerRow(_('5. DoH'), _('Connections to well-known public DNS/DoH resolvers are dropped (port 53 is redirected instead).'), L.doh,
@@ -350,6 +350,11 @@ return view.extend({
 
 		o = s.taboption('layers', form.Flag, 'force_dns', _('DNS redirect'), _('Answer every DNS request of the console from the router, even with manual DNS on the console.'));
 		o.default = '1'; o.depends('mode', 'mac');
+		o = s.taboption('layers', form.Value, 'dns_server', _('Force DNS to this server'),
+			_('Send the console\'s DNS to this server instead of the router (overrides podkop/AdGuard). Leave empty to use the router\'s dnsmasq. With a non-router server the built-in DNS block does not apply to the console — blocking then relies on the IP/DoT/DoH layers or that server\'s own filtering.'));
+		o.datatype = 'ipaddr';
+		o.placeholder = _('router (dnsmasq)');
+		o.depends('force_dns', '1');
 		o = s.taboption('layers', form.ListValue, 'dns_strict', _('Strict DNS'), _('Drop console DNS requests to external servers instead of redirecting them. "Auto" enables it only for consoles that podkop routes completely, because podkop would otherwise intercept their DNS first.'));
 		o.value('auto', _('Auto (only when podkop routes the console)'));
 		o.value('1', _('On'));

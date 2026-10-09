@@ -88,19 +88,19 @@ The signature is checked on every `opkg update` / `apk update`; without the key 
 Download the `.ipk` or `.apk` from the [releases page](https://github.com/dyadf/luci-app-ps5block/releases) and copy it to the router (`-O` is needed when the router has no sftp server):
 
 ```sh
-scp -O luci-app-ps5block_1.2.1-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
-scp -O luci-app-ps5block-1.2.1-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
+scp -O luci-app-ps5block_1.3.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
+scp -O luci-app-ps5block-1.3.0-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
 ```
 
 On the router:
 
 ```sh
 # OpenWrt 22.03–24.10 (opkg)
-opkg install /tmp/luci-app-ps5block_1.2.1-r1_all.ipk
+opkg install /tmp/luci-app-ps5block_1.3.0-r1_all.ipk
 
 # OpenWrt 25.x and later (apk): with the key from keys/ in /etc/apk/keys/ the
 # signature is checked, without it --allow-untrusted is needed
-apk add /tmp/luci-app-ps5block-1.2.1-r1.apk
+apk add /tmp/luci-app-ps5block-1.3.0-r1.apk
 ```
 
 File checksums are in `SHA256SUMS` in the release.
@@ -162,6 +162,10 @@ This is meant for your own console on your own network.
 - **zapret / zapret2.** Compatible. zapret works on outgoing WAN traffic, and dropped packets never get there.
 - **DoH on the router (https-dns-proxy etc.).** Compatible: it is dnsmasq's upstream, and the dnsmasq entry answers first.
 - **AdGuard Home.** If it replaces dnsmasq on port 53, the DNS layer does not work: add `||ps5.update.playstation.net^` to its blocklist. All other layers keep working.
+
+## Forcing the console's DNS
+
+By default the console's DNS is redirected to the router's dnsmasq (that is how the DNS block works). To make the console use a **specific** resolver instead, set **Protection layers → "Force DNS to this server"** (`option dns_server`). The console's port-53 is then redirected to that server — overriding podkop/AdGuard — so it always resolves through the DNS you chose. With a non-router server the built-in dnsmasq block no longer applies to the console; the update block then relies on the IP (L3) and DoT/DoH layers, or on that server's own filtering. (The "Resolvers" field is unrelated — it only tells the router which DNS to use when looking up the update servers' IPs for the L3 layer.)
 
 ## Command line
 
@@ -240,7 +244,7 @@ JSHN=/path/to/jshn.sh PATH=/path/to/openwrt-host-tools/bin:$PATH tests/run.sh
 node tests/view.test.js
 ```
 
-`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (135 checks).
+`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (143 checks).
 
 The package was also tested in an emulated OpenWrt environment: busybox ash, the real `uci`, `jshn`, `jsonfilter`, `opkg` and `apk` 3.0 built from OpenWrt sources, the real `nft` with a Linux kernel; installation, reinstallation and removal with opkg and apk, installation from the signed apk feed; rendering of the LuCI page in English and Russian.
 
