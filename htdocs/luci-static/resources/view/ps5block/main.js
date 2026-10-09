@@ -15,6 +15,7 @@ var callToggle = rpc.declare({ object: 'ps5block', method: 'toggle', params: [ '
 var callConsole = rpc.declare({ object: 'ps5block', method: 'console', params: [ 'mac', 'action', 'name' ], expect: { '': {} } });
 var callPayloadPrepare = rpc.declare({ object: 'ps5block', method: 'payload_prepare', expect: { '': {} } });
 var callPayloadSend = rpc.declare({ object: 'ps5block', method: 'payload', params: [ 'target', 'name' ], expect: { '': {} } });
+var callPayloadCheck = rpc.declare({ object: 'ps5block', method: 'payload_check', params: [ 'target' ], expect: { '': {} } });
 
 var PAYLOAD_PATH = '/tmp/ps5block-payload/upload.bin';
 
@@ -80,6 +81,22 @@ return view.extend({
 			callStatus().catch(function(e) { return { _error: String(e) }; }),
 			uci.load('ps5block')
 		]);
+	},
+
+	checkPort: function(target) {
+		return callPayloadCheck(target).then(function(res) {
+			if (!res || !res.status) {
+				ui.addNotification(null, E('p', [ _('Port check failed.') ]), 'danger');
+				return;
+			}
+			var port = res.port || 9021, ip = res.ip || target;
+			if (res.status === 'open')
+				ui.addNotification(null, E('p', [ _('Port %d on %s is open: the payload loader is ready.').format(port, ip) ]), 'info');
+			else if (res.status === 'closed')
+				ui.addNotification(null, E('p', [ _('Port %d on %s is closed. Start the payload loader on the console first.').format(port, ip) ]), 'warning');
+			else
+				ui.addNotification(null, E('p', [ _('No IP address for this console; turn it on and connect it to this router.') ]), 'warning');
+		});
 	},
 
 	sendPayload: function(target, label) {
@@ -188,12 +205,18 @@ return view.extend({
 					actions.push(' ', E('button', { 'class': 'cbi-button', 'title': _('Remove from the list of manually added consoles'), 'click': ui.createHandlerFn(self, 'consoleAction', c.mac, 'remove', '') }, _('Forget')));
 			}
 
-			if (c.ip && c.ip !== '-')
+			if (c.ip && c.ip !== '-') {
+				actions.push(' ', E('button', {
+					'class': 'cbi-button',
+					'title': _('Check whether the console is listening for payloads on port %d (one-shot loaders may treat the check as a connection).').format(st.payload_port || 9021),
+					'click': ui.createHandlerFn(self, 'checkPort', c.ip)
+				}, _('Check port')));
 				actions.push(' ', E('button', {
 					'class': 'cbi-button cbi-button-action',
 					'title': _('Upload a homebrew payload (ELF/bin) and send it to this console on port %d. The console must already run a payload loader. The file is deleted from the router right after sending.').format(st.payload_port || 9021),
 					'click': ui.createHandlerFn(self, 'sendPayload', c.ip, consoleLabel(c))
 				}, _('Send payload')));
+			}
 
 			ct.appendChild(E('tr', { 'class': 'tr' }, [
 				E('td', { 'class': 'td' }, E('strong', {}, [ consoleLabel(c) ])),

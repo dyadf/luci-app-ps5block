@@ -76,19 +76,19 @@ apk update && apk add luci-app-ps5block
 Скачайте `.ipk` или `.apk` со страницы [релизов](https://github.com/dyadf/luci-app-ps5block/releases) и скопируйте на роутер (`-O` нужен, если на роутере нет sftp-сервера):
 
 ```sh
-scp -O luci-app-ps5block_1.1.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
-scp -O luci-app-ps5block-1.1.0-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x и новее
+scp -O luci-app-ps5block_1.1.1-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
+scp -O luci-app-ps5block-1.1.1-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x и новее
 ```
 
 На роутере:
 
 ```sh
 # OpenWrt 22.03–24.10 (opkg)
-opkg install /tmp/luci-app-ps5block_1.1.0-r1_all.ipk
+opkg install /tmp/luci-app-ps5block_1.1.1-r1_all.ipk
 
 # OpenWrt 25.x и новее (apk): с ключом из keys/ в /etc/apk/keys/ подпись проверяется,
 # без него нужен --allow-untrusted
-apk add /tmp/luci-app-ps5block-1.1.0-r1.apk
+apk add /tmp/luci-app-ps5block-1.1.1-r1.apk
 ```
 
 Контрольные суммы файлов — в `SHA256SUMS` в релизе.
@@ -138,6 +138,7 @@ apk add /tmp/luci-app-ps5block-1.1.0-r1.apk
 
 - На консоли уже должен работать загрузчик пейлоадов, который слушает этот порт (настраивается на самой консоли, из её браузера/точки входа эксплойта). Пакет не эксплуатирует и не изменяет консоль — он лишь передаёт предоставленный вами файл уже слушающему загрузчику.
 - Загруженный файл хранится только в оперативной памяти роутера (`/tmp/ps5block-payload/`) и **удаляется сразу после отправки**, вне зависимости от результата.
+- Кнопка **«Проверить порт»** (или `ps5block payload-check <MAC|IP>`) показывает, слушает ли консоль порт для пейлоадов (открыт / закрыт / нет IP), чтобы убедиться, что загрузчик готов, до отправки. Это ручная проверка, она не выполняется автоматически перед отправкой: одноразовый загрузчик, принимающий одно подключение, иначе потратил бы его на проверку.
 - Из командной строки: `ps5block payload <MAC|IP> <файл>` (файл должен лежать в `/tmp/ps5block-payload/`).
 
 Функция рассчитана на вашу собственную консоль в вашей сети.
@@ -163,6 +164,7 @@ ps5block refresh         # обновить список IP серверов и 
 ps5block ruleset         # показать правила nftables, которые будут загружены
 ps5block payload AA:BB:CC:DD:EE:FF payload.bin   # отправить /tmp/ps5block-payload/payload.bin и удалить
 ps5block payloads        # список загруженных пейлоадов (JSON)
+ps5block payload-check AA:BB:CC:DD:EE:FF          # слушает ли консоль порт для пейлоадов? (JSON)
 ```
 
 Настройки хранятся в `/etc/config/ps5block`, журнал — `logread -e ps5block`.
@@ -225,7 +227,7 @@ JSHN=/path/to/jshn.sh PATH=/path/to/openwrt-host-tools/bin:$PATH tests/run.sh
 node tests/view.test.js
 ```
 
-`tests/run.sh` проверяет включение/выключение, правила nftables, dnsmasq, cron, обновление списка серверов, консоли, podkop, rpcd, hotplug, миграцию со старых скриптов и живой трафик через мост с «консолью» и «телефоном» (114 проверок).
+`tests/run.sh` проверяет включение/выключение, правила nftables, dnsmasq, cron, обновление списка серверов, консоли, podkop, rpcd, hotplug, миграцию со старых скриптов и живой трафик через мост с «консолью» и «телефоном» (120 проверок).
 
 Пакет проверялся в эмулированном окружении OpenWrt: busybox ash, настоящие `uci`, `jshn`, `jsonfilter`, `opkg` и `apk` 3.0, собранные из исходников OpenWrt, настоящий `nft` с ядром Linux; установка, переустановка и удаление через opkg и apk, установка из подписанного репозитория apk; отрисовка страницы LuCI на английском и русском.
 

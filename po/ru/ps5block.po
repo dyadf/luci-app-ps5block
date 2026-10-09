@@ -452,3 +452,21 @@ msgstr "Порт для пейлоадов"
 
 msgid "TCP port the console's homebrew payload loader listens on. Default 9021. Used by the \"Send payload\" button in the console list."
 msgstr "TCP-порт, на котором загрузчик пейлоадов консоли принимает соединения. По умолчанию 9021. Используется кнопкой «Отправить пейлоад» в списке консолей."
+
+msgid "Check port"
+msgstr "Проверить порт"
+
+msgid "Check whether the console is listening for payloads on port %d (one-shot loaders may treat the check as a connection)."
+msgstr "Проверить, слушает ли консоль пейлоады на порту %d (одноразовый загрузчик может принять проверку за подключение)."
+
+msgid "Port %d on %s is open: the payload loader is ready."
+msgstr "Порт %d на %s открыт: загрузчик пейлоадов готов."
+
+msgid "Port %d on %s is closed. Start the payload loader on the console first."
+msgstr "Порт %d на %s закрыт. Сначала запустите загрузчик пейлоадов на консоли."
+
+msgid "No IP address for this console; turn it on and connect it to this router."
+msgstr "У этой консоли нет IP-адреса; включите её и подключите к этому роутеру."
+
+msgid "Port check failed."
+msgstr "Не удалось проверить порт."

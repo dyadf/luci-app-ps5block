@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1-r1 — 2026-10-09
+
+### Added
+- **Payload port status check.** A "Check port" button next to each console (and
+  `ps5block payload-check <MAC|IP>`) reports whether the console's loader is listening
+  on the payload port: open / closed / no IP. It is an explicit action and is never run
+  automatically before a send, because a one-shot loader could treat the probe as its
+  one accepted connection. rpcd method `payload_check`; Russian translation; 120 checks.
+
 ## 1.1.0-r1 — 2026-10-09
 
 ### Added

@@ -278,6 +278,9 @@ printf 'x' > "$TR/payload/u3.bin"
 check "payload: unknown MAC (no IP) reported" "! P payload aa:bb:cc:00:00:99 u3.bin"
 check "payloads lists an uploaded file with its size" "printf 'ELFX' > '$TR/payload/u4.bin'; [ \"\$(P payloads | jsonfilter -e '@.payloads[@.name=\"u4.bin\"].size')\" = 4 ]"
 rm -f "$TR/payload/"*
+check "payload-check: unknown MAC reports no_ip" "[ \"\$(P payload-check aa:bb:cc:00:00:99 | jsonfilter -e '@.status')\" = no_ip ]"
+check "payload-check: no listener reports closed" "[ \"\$(PS5BLOCK_NC_TIMEOUT=2 P payload-check $PS5 | jsonfilter -e '@.status')\" = closed ]"
+check "payload-check: reports the configured port" "[ \"\$(P payload-check $PS5 | jsonfilter -e '@.port')\" = 9021 ]"
 
 section "whole network mode"
 P mode global >/dev/null
@@ -309,6 +312,7 @@ check "console: exclude" "echo '{\"mac\":\"$PS5\",\"action\":\"exclude\"}' | R c
 check "payloads returns the port" "[ \"\$(R call payloads | jsonfilter -e '@.port')\" = 9021 ]"
 check "payload_prepare ok and creates dir" "rm -rf '$TR/payload'; R call payload_prepare | grep -q '\"result\": 0' && [ -d '$TR/payload' ]"
 check "payload: missing file via rpcd reports error" "echo '{\"target\":\"$PS5\",\"name\":\"ghost.bin\"}' | R call payload | grep -q 'payload not found'"
+check "payload_check via rpcd (unknown MAC -> no_ip)" "echo '{\"target\":\"aa:bb:cc:00:00:99\"}' | R call payload_check | jsonfilter -e '@.status' | grep -q no_ip"
 check "toggle off" "echo '{\"enabled\":false}' | R call toggle >/dev/null && ! nft list table inet ps5block"
 
 section "hotplug"
@@ -402,6 +406,11 @@ if [ -x "$IP" ] && [ -x "$NSENTER" ] && "$IP" link add br-lan type bridge 2>/dev
 	sleep 0.5
 	check "payload to an IP on a custom port" "grep -q PORT-9022-OK '$TR/recv'"
 	U set ps5block.main.payload_port=9021; U commit ps5block
+	# port status check: open with a listener, closed without one
+	inns console "$BB" nc -l -p 9021 -w 4 >/dev/null 2>&1 &
+	sleep 0.5
+	check "payload-check: listener present reports open" "[ \"\$(PS5BLOCK_NC_TIMEOUT=3 P payload-check $PS5 | jsonfilter -e '@.status')\" = open ]"
+	check "payload-check: no listener on a free port reports closed" "[ \"\$(PS5BLOCK_NC_TIMEOUT=2 P payload-check 192.168.1.50 | jsonfilter -e '@.status')\" = closed ]"
 	kill $pids 2>/dev/null
 else
 	echo "  skip (cannot create a bridge here)"

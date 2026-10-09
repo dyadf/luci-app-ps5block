@@ -9,7 +9,7 @@ ok() { json_init; json_add_int result "${1:-0}"; [ -n "$2" ] && json_add_string 
 
 case "$1" in
 list)
-	echo '{ "status": {}, "apply": {}, "refresh": {}, "toggle": { "enabled": true }, "console": { "mac": "str", "action": "str", "name": "str" }, "payloads": {}, "payload_prepare": {}, "payload": { "target": "str", "name": "str" } }'
+	echo '{ "status": {}, "apply": {}, "refresh": {}, "toggle": { "enabled": true }, "console": { "mac": "str", "action": "str", "name": "str" }, "payloads": {}, "payload_prepare": {}, "payload": { "target": "str", "name": "str" }, "payload_check": { "target": "str" } }'
 	;;
 call)
 	case "$2" in
@@ -46,6 +46,12 @@ call)
 		;;
 	payloads)
 		/usr/sbin/ps5block payloads
+		;;
+	payload_check)
+		read -r input
+		json_load "$input"
+		json_get_var target target
+		/usr/sbin/ps5block payload-check "$target"
 		;;
 	payload_prepare)
 		dir="$(/usr/sbin/ps5block payload-dir 2>/dev/null)"

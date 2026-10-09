@@ -3,7 +3,7 @@
 		"description": "Grant access to PS5 Update Block",
 		"read": {
 			"ubus": {
-				"ps5block": [ "status", "payloads" ],
+				"ps5block": [ "status", "payloads", "payload_check" ],
 				"network.interface": [ "dump" ]
 			},
 			"uci": [ "ps5block", "network" ]

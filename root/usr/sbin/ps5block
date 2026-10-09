@@ -7,7 +7,7 @@
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.1.0"
+VERSION="1.1.1"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
@@ -576,6 +576,29 @@ do_payload() { # <mac|ip> <filename in PAYLOAD_DIR>
 	return $rc
 }
 
+# is a TCP port open on the console? one connect, no data sent (EOF on stdin).
+# NOTE: a one-shot loader that accepts a single connection may consume this
+# probe, so it is an explicit action, never run automatically before a send.
+port_open() { # ip port
+	nc -w "${PS5BLOCK_NC_TIMEOUT:-3}" "$1" "$2" </dev/null >/dev/null 2>&1
+}
+
+# JSON: { status: open|closed|no_ip, ip, port }. rc 0 open, 1 closed, 3 no_ip.
+payload_check_json() { # <mac|ip>
+	local target="$1" ip port status rc
+	ip="$(payload_ip "$target" 2>/dev/null)"
+	port="$(payload_port)"
+	if [ -z "$ip" ]; then status=no_ip; rc=3
+	elif port_open "$ip" "$port"; then status=open; rc=0
+	else status=closed; rc=1; fi
+	json_init
+	json_add_string status "$status"
+	json_add_string ip "${ip:-}"
+	json_add_int port "$port"
+	json_dump
+	return $rc
+}
+
 payloads_json() {
 	local f
 	json_init
@@ -789,6 +812,7 @@ Usage: ps5block <command>
   payload <MAC|IP> <file>     send a homebrew payload to the console's loader
                               (default port 9021) and delete it from the router
   payloads                    list uploaded payloads waiting to be sent (JSON)
+  payload-check <MAC|IP>      check if the console's loader port is open (JSON)
   stop                        remove runtime rules only (used by init)
   teardown                    remove everything (rules, dnsmasq entries, cron)
 EOF
@@ -803,9 +827,10 @@ case "$cmd" in
 	stop)        with_lock do_stop ;;
 	teardown)    with_lock do_teardown ;;
 	refresh)     with_lock do_refresh ;;
-	payload)     with_lock do_payload "$1" "$2" ;;
-	payloads)    payloads_json ;;
-	payload-dir) payload_prepare && echo "$PAYLOAD_DIR" ;;
+	payload)       with_lock do_payload "$1" "$2" ;;
+	payloads)      payloads_json ;;
+	payload-check) payload_check_json "$1" ;;
+	payload-dir)   payload_prepare && echo "$PAYLOAD_DIR" ;;
 	status)      status_text ;;
 	status-json) status_json ;;
 	detect)      detect_consoles | awk 'BEGIN { print "MAC               IP               HOSTNAME             BY       ONLINE" }

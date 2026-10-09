@@ -36,9 +36,11 @@ const L = {
 		createHandlerFn: () => () => {}, addNotification: (t, n) => notifications.push(n),
 		uploadFile: path => { lastUpload = path; return Promise.resolve({ name: 'upload.bin', size: 4096 }); },
 	},
-	// the payload send succeeds; any other method returns a failure carrying hostile text
+	// payload send succeeds; port check reports open; anything else fails with hostile text
 	rpc: { declare: d => () => Promise.resolve(
-		d.method === 'payload' ? { result: 0 } : { result: 1, error: 'invalid MAC: ' + EVIL }) },
+		d.method === 'payload' ? { result: 0 } :
+		d.method === 'payload_check' ? { status: 'open', ip: '192.168.1.50', port: 9021 } :
+		{ result: 1, error: 'invalid MAC: ' + EVIL }) },
 };
 const modules = {
 	view: { extend: o => o }, form: {}, rpc: L.rpc, uci: {}, ui: L.ui, poll: {}, dom: {}, 'tools.widgets': {},
@@ -102,6 +104,15 @@ t('console action error: notification kept, no reload', () =>
 t('Send payload button rendered for a console with an IP', () => {
 	const btns = texts(tree).filter(x => x === 'Send payload');
 	if (!btns.length) throw new Error('no Send payload button');
+});
+t('Check port button rendered for a console with an IP', () => {
+	if (!texts(tree).filter(x => x === 'Check port').length) throw new Error('no Check port button');
+});
+t('checkPort reports the status without throwing', () => {
+	notifications.length = 0;
+	return view.checkPort('192.168.1.50').then(() => {
+		if (!notifications.length) throw new Error('no notification');
+	});
 });
 t('sendPayload uploads then sends and reports success as text', () => {
 	htmlSinks.length = 0; notifications.length = 0; lastUpload = null;
