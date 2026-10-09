@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.1-r1 — 2026-10-09
+
+### Fixed (works without any manual router steps)
+- **DNS redirect now catches the console even on "Automatic" DNS.** The force-DNS rule
+  dropped its `fib daddr type != local` condition, so it redirects *all* of the console's
+  port-53 traffic — including queries already aimed at the router — to dnsmasq. Our chain
+  runs at priority −160, before fw4/podkop/AdGuard DNS dispatchers at −100, so it claims the
+  NAT first and the console always resolves via dnsmasq (the update block is no longer
+  bypassed by a DNS redirector). Other clients are untouched (the rule is console-scoped).
+- **L3 no longer depends on a single resolver.** Public fallbacks (1.1.1.1, 8.8.8.8, 9.9.9.9)
+  are always queried alongside the configured one, so a dead/misconfigured resolver can no
+  longer leave the update-server IP list empty. The L3 layer drops update servers by IP at
+  −170 (before podkop), so it works even where a DNS dispatcher owns port 53.
+
 ## 1.2.0-r1 — 2026-10-09
 
 ### Added

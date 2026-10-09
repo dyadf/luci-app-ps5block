@@ -99,6 +99,9 @@ setup() {
 	type=a; [ "\${1#-type=}" != "\$1" ] && { type="\${1#-type=}"; shift; }
 	host="\$1"; srv="\$2"
 	printf 'Server:\t\t%s\nAddress:\t%s:53\n\n' "\$srv" "\$srv"
+	if [ -f "$TR/dead" ] && grep -qx "\$srv" "$TR/dead"; then
+		echo ";; connection timed out; no servers could be reached" >&2; exit 1
+	fi
 	if [ "\$srv" = "127.0.0.1" ]; then
 		if grep -q "update.playstation.net/" "$TR/root/etc/config/dhcp"; then
 			echo "** server can't find \$host: NXDOMAIN"
@@ -170,6 +173,7 @@ check "console MAC in set" "setelems consoles | grep -q '$PS5'"
 check "phone MAC not in set" "! setelems consoles | grep -q '$PHONE'"
 check "lan_if = br-lan" "setelems lan_if | grep -q br-lan"
 check "force_dns rule" has_rule force_dns
+check "force_dns redirects all console DNS (even router-directed)" "ruleset | grep 'comment \"force_dns\"' | grep -qv 'fib daddr type'"
 check "dot rule" has_rule dot
 check "doh4 + doh6 rules" 'has_rule doh4 && has_rule doh6'
 check "l3 rules" 'has_rule l3_v4 && has_rule l3_v6'
@@ -209,6 +213,14 @@ check "status: L3 counts" "[ \"\$(J '@.layers.l3.v4')\" = 2 ] && [ \"\$(J '@.lay
 n="$(grep -c 'update server list' "$TR/log")"
 P refresh >/dev/null
 check "unchanged refresh is silent" "[ \"\$(grep -c 'update server list' '$TR/log')\" = '$n' ]"
+# a dead configured resolver must not starve L3: fallbacks still populate it
+U -q delete ps5block.main.resolver; U add_list ps5block.main.resolver=203.0.113.1; U commit ps5block
+echo 203.0.113.1 > "$TR/dead"
+rm -f "$TR/root/var/run/ps5block/upd4" "$TR/root/var/run/ps5block/refreshed"
+P refresh >/dev/null
+check "L3 populates via fallback when the configured resolver is dead" "setelems upd4 | grep -q 23.45.67.89"
+rm -f "$TR/dead"; U -q delete ps5block.main.resolver
+U add_list ps5block.main.resolver=1.1.1.1; U add_list ps5block.main.resolver=8.8.8.8; U commit ps5block
 rm -f "$TR/dns"; P refresh >/dev/null
 check "failed resolve keeps the list" "setelems upd4 | grep -q 23.45.67.89"
 echo "999.1.2.3" > "$TR/root/var/run/ps5block/upd4"

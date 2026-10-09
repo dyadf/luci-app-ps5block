@@ -7,7 +7,7 @@
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.2.0"
+VERSION="1.2.1"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
@@ -281,11 +281,15 @@ build_ruleset() {
 		printf '\tset podkop_routed {\n\t\ttype ipv4_addr\n\t\tflags interval\n\t}\n'
 	fi
 	echo ""
-	# nat chain before podkop (mangle -150): DNS goes to dnsmasq, never to proxy
+	# nat chain before podkop (mangle -150) and before other DNS redirectors
+	# (fw4/podkop/AdGuard run at dstnat -100): claim the console's DNS first so it
+	# always lands on dnsmasq. We redirect ALL of the console's port 53 - including
+	# DNS already aimed at the router ("Automatic" on the console) - otherwise a
+	# -100 dispatcher re-redirects it away from dnsmasq and the block is bypassed.
 	echo "	chain dns_redirect {"
 	echo "		type nat hook prerouting priority -160; policy accept;"
 	[ "$(layer force_dns)" = "1" ] && \
-	echo "		$match meta l4proto { tcp, udp } th dport 53 fib daddr type != local counter redirect to :53 comment \"force_dns\""
+	echo "		$match meta l4proto { tcp, udp } th dport 53 counter redirect to :53 comment \"force_dns\""
 	echo "	}"
 	echo "	chain block {"
 	echo "		type filter hook prerouting priority -170; policy accept;"
@@ -352,9 +356,11 @@ resolve_updates() {
 }
 
 cfg_resolvers() {
-	local r
-	r="$(uci -q get ps5block.main.resolver)"
-	echo "${r:-1.1.1.1 8.8.8.8}"
+	# configured resolvers plus public fallbacks, deduplicated. Appending the
+	# fallbacks means a dead or misconfigured resolver can never starve the L3
+	# list - resolve_updates unions the answers from every resolver it asks.
+	{ uci -q get ps5block.main.resolver | tr ' ' '\n'; printf '1.1.1.1\n8.8.8.8\n9.9.9.9\n'; } \
+		| awk 'NF && !seen[$0]++' | tr '\n' ' '
 }
 
 rules_sig() { echo "$(strict_mode) $(podkop_routed | join_comma)"; }

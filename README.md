@@ -88,19 +88,19 @@ The signature is checked on every `opkg update` / `apk update`; without the key 
 Download the `.ipk` or `.apk` from the [releases page](https://github.com/dyadf/luci-app-ps5block/releases) and copy it to the router (`-O` is needed when the router has no sftp server):
 
 ```sh
-scp -O luci-app-ps5block_1.2.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
-scp -O luci-app-ps5block-1.2.0-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
+scp -O luci-app-ps5block_1.2.1-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
+scp -O luci-app-ps5block-1.2.1-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
 ```
 
 On the router:
 
 ```sh
 # OpenWrt 22.03–24.10 (opkg)
-opkg install /tmp/luci-app-ps5block_1.2.0-r1_all.ipk
+opkg install /tmp/luci-app-ps5block_1.2.1-r1_all.ipk
 
 # OpenWrt 25.x and later (apk): with the key from keys/ in /etc/apk/keys/ the
 # signature is checked, without it --allow-untrusted is needed
-apk add /tmp/luci-app-ps5block-1.2.0-r1.apk
+apk add /tmp/luci-app-ps5block-1.2.1-r1.apk
 ```
 
 File checksums are in `SHA256SUMS` in the release.
@@ -158,7 +158,7 @@ This is meant for your own console on your own network.
 
 ## podkop, zapret and DoH
 
-- **podkop.** Compatible. DoT/DoH/L3 drops happen before podkop: on the test bench with podkop's rule layout, console traffic to the update server **never reached it**. The subtle part is DNS: the kernel always runs the DNS redirect at the NAT stage (−100), while podkop takes traffic earlier (−150). So for consoles that podkop routes **completely** (`fully_routed_ips`, subnets included), **strict DNS** is turned on automatically. External DNS is dropped at −170 and the console has to ask the router, and podkop leaves requests to the router alone. When the podkop list changes, the rules rebuild themselves on the next refresh (every 20 minutes by default) or at once with "Re-apply rules". **Do not put playstation domains into podkop lists**; the package warns if it finds them.
+- **podkop.** Compatible, including podkop's own DNS handling. podkop (and fw4/AdGuard) redirect LAN DNS at NAT priority −100; this package redirects the console's DNS at −160, so it **claims the console's queries first** and they always reach dnsmasq — the DNS block is not bypassed even when podkop owns port 53. This covers "Automatic" DNS on the console too (all of its port-53 traffic is caught, not only queries to external servers). The DoT/DoH/L3 drops run at −170, before podkop's −150, so update traffic never reaches the proxy. Only the console is affected; other clients keep using podkop's DNS. When the podkop list changes, the rules rebuild themselves on the next refresh (every 20 minutes by default) or at once with "Re-apply rules". **Do not put playstation domains into podkop lists**; the package warns if it finds them.
 - **zapret / zapret2.** Compatible. zapret works on outgoing WAN traffic, and dropped packets never get there.
 - **DoH on the router (https-dns-proxy etc.).** Compatible: it is dnsmasq's upstream, and the dnsmasq entry answers first.
 - **AdGuard Home.** If it replaces dnsmasq on port 53, the DNS layer does not work: add `||ps5.update.playstation.net^` to its blocklist. All other layers keep working.
@@ -240,7 +240,7 @@ JSHN=/path/to/jshn.sh PATH=/path/to/openwrt-host-tools/bin:$PATH tests/run.sh
 node tests/view.test.js
 ```
 
-`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (133 checks).
+`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (135 checks).
 
 The package was also tested in an emulated OpenWrt environment: busybox ash, the real `uci`, `jshn`, `jsonfilter`, `opkg` and `apk` 3.0 built from OpenWrt sources, the real `nft` with a Linux kernel; installation, reinstallation and removal with opkg and apk, installation from the signed apk feed; rendering of the LuCI page in English and Russian.
 
