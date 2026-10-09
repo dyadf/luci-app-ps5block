@@ -1,0 +1,27 @@
+# All PlayStation / PSN server domains (aggregated from the AdGuard Home list).
+# This blocks PSN sign-in, the store, downloads (incl. games), social features
+# AND system updates for the console. Use only if you want the console fully cut
+# off from Sony's servers. Each entry blocks the domain and all subdomains.
+#
+# System software updates (PS4 + PS5) and the update CDN
+update.playstation.net
+update.playstation.org.edgesuite.net
+# Downloads / content delivery (themis, tmdb, fswitch, rnps-crl, crepo,
+# ps4-eb, ps4-system, sgst.prod, gs2.ww.prod - games included)
+dl.playstation.net
+# PSN community / profiles / trophies / update portal
+community.playstation.net
+# np network services (get, post)
+net.playstation.net
+# STUN / NAT traversal
+stun.playstation.net
+# km API (sf.api, event.api)
+km.playstation.net
+# PlayStation web API (urlconfig)
+api.playstation.com
+# ribob01.net CDN/API (apicdn-p014, api-p014, artcdnsecure)
+ribob01.net
+# Sony Akamai DNS target (playstation.sony.akadns.net)
+sony.akadns.net
+# Akamai edge node used by the console (shared CDN; console-scoped in "mac" mode)
+a192.d.akamai.net

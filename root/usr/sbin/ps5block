@@ -7,7 +7,7 @@
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.1.2"
+VERSION="1.2.0"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
@@ -159,9 +159,21 @@ lan_devices() {
 # ----------------------------------------------------------------- dnsmasq --
 dnsmasq_sections() { uci -q show dhcp | sed -n "s/^dhcp\.\([^.=]*\)=dnsmasq$/\1/p"; }
 
+# effective list of blocked domains: a shipped preset (updates|all) plus any
+# domains the user added by hand; "custom" uses only the user's list.
+effective_domains() {
+	case "$(cfg blocklist updates)" in
+		all)    grep -vE '^[[:space:]]*(#|$)' "$SHARE/domains.all" 2>/dev/null ;;
+		custom) ;;
+		*)      grep -vE '^[[:space:]]*(#|$)' "$SHARE/domains.updates" 2>/dev/null ;;
+	esac
+	uci -q get ps5block.main.domain | tr ' ' '\n'
+}
+
 dns_sync() { # $1 = 1 to install entries, 0 to remove
 	local want="" have s d cur changed=0
-	[ "$1" = "1" ] && [ "$(layer dns_block)" = "1" ] && want="$(uci -q get ps5block.main.domain)"
+	[ "$1" = "1" ] && [ "$(layer dns_block)" = "1" ] && \
+		want="$(effective_domains | grep -E '[a-z]' | sort -u | tr '\n' ' ')"
 	have="$(cat "$DNS_STATE" 2>/dev/null)"
 	for s in $(dnsmasq_sections); do
 		cur=" $(uci -q get "dhcp.$s.address") "
@@ -185,7 +197,7 @@ dns_sync() { # $1 = 1 to install entries, 0 to remove
 
 dns_entry_present() {
 	local s d
-	d="$(uci -q get ps5block.main.domain | awk '{print $1}')"
+	d="$(effective_domains | grep -E '[a-z]' | head -n1)"
 	[ -n "$d" ] || return 1
 	for s in $(dnsmasq_sections); do
 		case " $(uci -q get "dhcp.$s.address") " in *" /$d/ "*) return 0 ;; esac

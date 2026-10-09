@@ -1,0 +1,9 @@
+# PlayStation system software update servers (PS4 + PS5).
+# Blocking these stops console system-software updates; games, patches, the
+# store and PSN keep working. Each entry blocks the domain and all subdomains.
+#
+# update.playstation.net covers every d/f/h<region>01.ps{4,5}.update.playstation.net
+# server and al02.cdn.update.playstation.net.
+update.playstation.net
+# Akamai (edgesuite) update CDN: a01.cdn.update.playstation.org.edgesuite.net
+update.playstation.org.edgesuite.net

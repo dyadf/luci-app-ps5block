@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0-r1 — 2026-10-09
+
+### Added
+- **Blocklist modes (DNS).** New `blocklist` setting / "What to block" selector:
+  - **updates** (default) — system software update servers only (`update.playstation.net`
+    and the Akamai update CDN); games, the store and PSN keep working.
+  - **all** — every PlayStation/PSN server aggregated from a real AdGuard Home list
+    (downloads incl. games, store, sign-in, community, STUN, APIs, ribob01.net, …);
+    the console is fully cut off from Sony.
+  - **custom** — only the domains you list.
+  Shipped lists: `/usr/share/ps5block/domains.{updates,all}`. The `domain` list is now
+  *extra* domains added on top of the preset. Russian translation added.
+
 ## 1.1.2-r1 — 2026-10-09
 
 ### Fixed

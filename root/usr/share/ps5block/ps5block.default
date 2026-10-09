@@ -29,6 +29,13 @@ config ps5block 'main'
 	option refresh_interval '20'
 	# TCP port the console's homebrew payload loader listens on
 	option payload_port '9021'
+
+	# What to block (DNS layer):
+	#   updates - system software updates only (default; games/PSN keep working)
+	#   all     - every PlayStation/PSN server (updates, downloads, store, social)
+	#   custom  - only the domains listed below
+	option blocklist 'updates'
+	# Extra domains to block on top of the preset (blocked with all subdomains)
 	list domain 'ps5.update.playstation.net'
 	list resolver '1.1.1.1'
 	list resolver '8.8.8.8'

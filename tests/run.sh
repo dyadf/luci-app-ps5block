@@ -100,7 +100,7 @@ setup() {
 	host="\$1"; srv="\$2"
 	printf 'Server:\t\t%s\nAddress:\t%s:53\n\n' "\$srv" "\$srv"
 	if [ "\$srv" = "127.0.0.1" ]; then
-		if grep -q "/ps5.update.playstation.net/" "$TR/root/etc/config/dhcp"; then
+		if grep -q "update.playstation.net/" "$TR/root/etc/config/dhcp"; then
 			echo "** server can't find \$host: NXDOMAIN"
 		else
 			printf 'Name:\t%s\nAddress: 203.0.113.9\n' "\$host"
@@ -185,9 +185,11 @@ check "status: applied, 1 console active" "[ \"\$(J '@.applied')\" = true ] && [
 check "status: DNS test blocked" "[ \"\$(J '@.layers.dns.test')\" = blocked ]"
 check "status: no warnings" "[ -z \"\$(J '@.warnings[*]')\" ]"
 check "status text" "P status | grep -q 'Consoles'"
+check "dns state lists the update domain" "grep -q 'update.playstation.net' '$TR/root/etc/ps5block.dns'"
+dstate_before="$(cat "$TR/root/etc/ps5block.dns")"
 : > "$TR/svc"; P apply >/dev/null
 check "re-apply does not restart dnsmasq" "! grep -q dnsmasq '$TR/svc'"
-check "re-apply does not rewrite dns state" "[ \"\$(cat '$TR/root/etc/ps5block.dns')\" = ps5.update.playstation.net ]"
+check "re-apply does not rewrite dns state" "[ \"\$(cat '$TR/root/etc/ps5block.dns')\" = '$dstate_before' ]"
 
 section "update server list (L3)"
 cat > "$TR/dns" <<-'EOF'
@@ -259,6 +261,24 @@ check "cron for 90 min" grep -q '^30 \*/1 \* \* \* ' "$TR/root/etc/crontabs/root
 U set ps5block.main.refresh_interval=junk; U commit ps5block; P apply >/dev/null
 check "junk interval falls back to 20" "grep -q '^\*/20 ' '$TR/root/etc/crontabs/root' && [ \"\$(J '@.layers.l3.interval')\" = 20 ]"
 U set ps5block.main.refresh_interval=20; U commit ps5block
+
+section "blocklist modes (DNS domains)"
+DHCP="$TR/root/etc/config/dhcp"
+P apply >/dev/null
+check "updates preset blocks update.playstation.net" "grep -q '/update.playstation.net/' '$DHCP'"
+check "updates preset blocks the update CDN" "grep -q '/update.playstation.org.edgesuite.net/' '$DHCP'"
+check "updates preset does NOT block downloads (dl.playstation.net)" "! grep -q '/dl.playstation.net/' '$DHCP'"
+U set ps5block.main.blocklist=all; U commit ps5block; P apply >/dev/null
+check "all preset blocks downloads" "grep -q '/dl.playstation.net/' '$DHCP'"
+check "all preset blocks community" "grep -q '/community.playstation.net/' '$DHCP'"
+check "all preset blocks ribob01.net" "grep -q '/ribob01.net/' '$DHCP'"
+check "all preset still blocks updates" "grep -q '/update.playstation.net/' '$DHCP'"
+U set ps5block.main.blocklist=custom; U -q delete ps5block.main.domain
+U add_list ps5block.main.domain=example.test; U commit ps5block; P apply >/dev/null
+check "custom blocks only the user list" "grep -q '/example.test/' '$DHCP' && ! grep -q '/dl.playstation.net/' '$DHCP' && ! grep -q '/update.playstation.net/' '$DHCP'"
+U -q delete ps5block.main.domain; U add_list ps5block.main.domain=ps5.update.playstation.net
+U set ps5block.main.blocklist=updates; U commit ps5block; P apply >/dev/null
+check "switching back to updates removed the all-only entries" "! grep -q '/dl.playstation.net/' '$DHCP' && grep -q '/update.playstation.net/' '$DHCP'"
 
 section "payloads (config, no network)"
 check "default payload port is 9021" "[ \"\$(J '@.payload_port')\" = 9021 ]"

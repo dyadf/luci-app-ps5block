@@ -384,9 +384,15 @@ return view.extend({
 		o.placeholder = '9021';
 		o.default = '9021';
 
-		o = s.taboption('advanced', form.DynamicList, 'domain', _('Blocked domains'), _('Blocked together with all subdomains. Default: ps5.update.playstation.net (system software only; games and patches use other domains).'));
+		o = s.taboption('advanced', form.ListValue, 'blocklist', _('What to block (DNS)'),
+			_('<b>Updates only</b>: system software update servers; games, the store and PSN keep working. <b>All PSN servers</b>: also blocks downloads (incl. games), store, sign-in and social — the console is cut off from Sony. <b>Custom</b>: only the list below.'));
+		o.value('updates', _('Updates only (recommended)'));
+		o.value('all', _('All PSN servers'));
+		o.value('custom', _('Custom list only'));
+		o.default = 'updates';
+
+		o = s.taboption('advanced', form.DynamicList, 'domain', _('Extra blocked domains'), _('Blocked together with all subdomains, on top of the preset above (for "Custom", this is the whole list).'));
 		o.datatype = 'hostname';
-		o.default = 'ps5.update.playstation.net';
 
 		o = s.taboption('advanced', form.DynamicList, 'resolver', _('Resolvers for the address list'), _('Public DNS servers the router asks for update server addresses.'));
 		o.datatype = 'ipaddr';

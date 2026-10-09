@@ -471,3 +471,24 @@ msgstr ""
 
 msgid "The payload loader is not listening on port %d of %s; nothing was sent. Start the loader on the console and try again."
 msgstr ""
+
+msgid "What to block (DNS)"
+msgstr ""
+
+msgid "<b>Updates only</b>: system software update servers; games, the store and PSN keep working. <b>All PSN servers</b>: also blocks downloads (incl. games), store, sign-in and social — the console is cut off from Sony. <b>Custom</b>: only the list below."
+msgstr ""
+
+msgid "Updates only (recommended)"
+msgstr ""
+
+msgid "All PSN servers"
+msgstr ""
+
+msgid "Custom list only"
+msgstr ""
+
+msgid "Extra blocked domains"
+msgstr ""
+
+msgid "Blocked together with all subdomains, on top of the preset above (for \"Custom\", this is the whole list)."
+msgstr ""

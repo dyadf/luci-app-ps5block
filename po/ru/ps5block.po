@@ -473,3 +473,24 @@ msgstr "Не удалось проверить порт."
 
 msgid "The payload loader is not listening on port %d of %s; nothing was sent. Start the loader on the console and try again."
 msgstr "Загрузчик пейлоадов не слушает порт %d на %s; ничего не отправлено. Запустите загрузчик на консоли и повторите."
+
+msgid "What to block (DNS)"
+msgstr "Что блокировать (DNS)"
+
+msgid "<b>Updates only</b>: system software update servers; games, the store and PSN keep working. <b>All PSN servers</b>: also blocks downloads (incl. games), store, sign-in and social — the console is cut off from Sony. <b>Custom</b>: only the list below."
+msgstr "<b>Только обновления</b>: серверы обновлений системного ПО; игры, магазин и PSN работают. <b>Все серверы PSN</b>: дополнительно блокируются загрузки (вкл. игры), магазин, вход и социальные функции — консоль отрезана от Sony. <b>Свой список</b>: только список ниже."
+
+msgid "Updates only (recommended)"
+msgstr "Только обновления (рекомендуется)"
+
+msgid "All PSN servers"
+msgstr "Все серверы PSN"
+
+msgid "Custom list only"
+msgstr "Только свой список"
+
+msgid "Extra blocked domains"
+msgstr "Дополнительные блокируемые домены"
+
+msgid "Blocked together with all subdomains, on top of the preset above (for \"Custom\", this is the whole list)."
+msgstr "Блокируются со всеми поддоменами, в дополнение к набору выше (для «Свой список» — это весь список)."

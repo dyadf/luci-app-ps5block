@@ -41,6 +41,18 @@ packet from console ──► ps5block (−170): DoT / DoH / L3 / strict DNS ─
 
 Only `ps5.update.playstation.net` and its subdomains are blocked; that is system software. Games and patches come from other domains and keep working.
 
+## What to block
+
+The DNS layer has three presets (**Advanced → "What to block"**, or `option blocklist`):
+
+| Preset | Blocks | Games / store / PSN |
+|---|---|---|
+| **updates** (default) | system software update servers only (`update.playstation.net` + the Akamai update CDN) | keep working |
+| **all** | every PlayStation/PSN server — downloads (incl. games), store, sign-in, community, STUN, APIs, `ribob01.net`, … | cut off |
+| **custom** | only the domains you add under "Extra blocked domains" | — |
+
+The preset lists live in `/usr/share/ps5block/domains.updates` and `domains.all`; "Extra blocked domains" are added on top (for **custom**, they are the whole list). The IP-level (L3) layer always targets update servers only.
+
 ## Requirements
 
 - OpenWrt **22.03 or later** with firewall4 (nftables). This is the default since 22.03 and is also required by podkop and zapret2.
@@ -76,19 +88,19 @@ The signature is checked on every `opkg update` / `apk update`; without the key 
 Download the `.ipk` or `.apk` from the [releases page](https://github.com/dyadf/luci-app-ps5block/releases) and copy it to the router (`-O` is needed when the router has no sftp server):
 
 ```sh
-scp -O luci-app-ps5block_1.1.2-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
-scp -O luci-app-ps5block-1.1.2-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
+scp -O luci-app-ps5block_1.2.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
+scp -O luci-app-ps5block-1.2.0-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
 ```
 
 On the router:
 
 ```sh
 # OpenWrt 22.03–24.10 (opkg)
-opkg install /tmp/luci-app-ps5block_1.1.2-r1_all.ipk
+opkg install /tmp/luci-app-ps5block_1.2.0-r1_all.ipk
 
 # OpenWrt 25.x and later (apk): with the key from keys/ in /etc/apk/keys/ the
 # signature is checked, without it --allow-untrusted is needed
-apk add /tmp/luci-app-ps5block-1.1.2-r1.apk
+apk add /tmp/luci-app-ps5block-1.2.0-r1.apk
 ```
 
 File checksums are in `SHA256SUMS` in the release.
@@ -228,7 +240,7 @@ JSHN=/path/to/jshn.sh PATH=/path/to/openwrt-host-tools/bin:$PATH tests/run.sh
 node tests/view.test.js
 ```
 
-`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (123 checks).
+`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (133 checks).
 
 The package was also tested in an emulated OpenWrt environment: busybox ash, the real `uci`, `jshn`, `jsonfilter`, `opkg` and `apk` 3.0 built from OpenWrt sources, the real `nft` with a Linux kernel; installation, reinstallation and removal with opkg and apk, installation from the signed apk feed; rendering of the LuCI page in English and Russian.
 
