@@ -3,14 +3,18 @@
 # OpenWrt SDK / buildroot package for luci-app-ps5block.
 # Put this directory into feeds/luci/applications/ (or any feed that has luci.mk)
 # and run: make package/luci-app-ps5block/compile
-# For a quick stand-alone build without the SDK use ./build.sh instead.
+# For a quick stand-alone build without the SDK use ./build.sh instead
+# (it reads the PKG_* values below).
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-ps5block
-PKG_VERSION:=1.0.0
+PKG_VERSION:=1.0.1
 PKG_RELEASE:=1
 PKG_LICENSE:=MIT
+PKG_LICENSE_FILES:=LICENSE
+PKG_MAINTAINER:=arsutov <arsutov@users.noreply.github.com>
+PKG_URL:=https://github.com/arsutov/luci-app-ps5block
 
 LUCI_TITLE:=PS5 system update blocker
 LUCI_DESCRIPTION:=Blocks PlayStation 5 system software updates: DNS block, forced DNS, \
