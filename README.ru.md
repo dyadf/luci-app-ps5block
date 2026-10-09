@@ -1,6 +1,6 @@
 # luci-app-ps5block — блокировка обновлений PS5 на OpenWrt
 
-[![Release](https://img.shields.io/github/v/release/arsutov/luci-app-ps5block)](https://github.com/arsutov/luci-app-ps5block/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![OpenWrt 22.03+](https://img.shields.io/badge/OpenWrt-22.03%2B%20(fw4)-00b5e2)
+[![Release](https://img.shields.io/github/v/release/dyadf/luci-app-ps5block)](https://github.com/dyadf/luci-app-ps5block/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![OpenWrt 22.03+](https://img.shields.io/badge/OpenWrt-22.03%2B%20(fw4)-00b5e2)
 
 [English version](README.md)
 
@@ -49,23 +49,23 @@
 
 ## Установка
 
-Пакеты подписаны ключом проекта (не ключом OpenWrt). Публичные ключи лежат в каталоге [`keys/`](keys/) и в каждом [релизе](https://github.com/arsutov/luci-app-ps5block/releases).
+Пакеты подписаны ключом проекта (не ключом OpenWrt). Публичные ключи лежат в каталоге [`keys/`](keys/) и в каждом [релизе](https://github.com/dyadf/luci-app-ps5block/releases).
 
 ### Вариант 1: репозиторий пакетов (рекомендуется, обновления через opkg/apk)
 
 **OpenWrt 22.03–24.10 (opkg):**
 
 ```sh
-wget -O /etc/opkg/keys/eec9661fb33aa0db https://raw.githubusercontent.com/arsutov/luci-app-ps5block/main/keys/eec9661fb33aa0db
-echo "src/gz ps5block https://github.com/arsutov/luci-app-ps5block/releases/latest/download" >> /etc/opkg/customfeeds.conf
+wget -O /etc/opkg/keys/eec9661fb33aa0db https://raw.githubusercontent.com/dyadf/luci-app-ps5block/main/keys/eec9661fb33aa0db
+echo "src/gz ps5block https://github.com/dyadf/luci-app-ps5block/releases/latest/download" >> /etc/opkg/customfeeds.conf
 opkg update && opkg install luci-app-ps5block
 ```
 
 **OpenWrt 25.x и новее (apk):**
 
 ```sh
-wget -O /etc/apk/keys/ps5block.pem https://raw.githubusercontent.com/arsutov/luci-app-ps5block/main/keys/ps5block.pem
-echo "https://github.com/arsutov/luci-app-ps5block/releases/latest/download/packages.adb" >> /etc/apk/repositories.d/customfeeds.list
+wget -O /etc/apk/keys/ps5block.pem https://raw.githubusercontent.com/dyadf/luci-app-ps5block/main/keys/ps5block.pem
+echo "https://github.com/dyadf/luci-app-ps5block/releases/latest/download/packages.adb" >> /etc/apk/repositories.d/customfeeds.list
 apk update && apk add luci-app-ps5block
 ```
 
@@ -73,7 +73,7 @@ apk update && apk add luci-app-ps5block
 
 ### Вариант 2: файл пакета вручную
 
-Скачайте `.ipk` или `.apk` со страницы [релизов](https://github.com/arsutov/luci-app-ps5block/releases) и скопируйте на роутер (`-O` нужен, если на роутере нет sftp-сервера):
+Скачайте `.ipk` или `.apk` со страницы [релизов](https://github.com/dyadf/luci-app-ps5block/releases) и скопируйте на роутер (`-O` нужен, если на роутере нет sftp-сервера):
 
 ```sh
 scp -O luci-app-ps5block_1.1.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
@@ -229,7 +229,7 @@ node tests/view.test.js
 
 Пакет проверялся в эмулированном окружении OpenWrt: busybox ash, настоящие `uci`, `jshn`, `jsonfilter`, `opkg` и `apk` 3.0, собранные из исходников OpenWrt, настоящий `nft` с ядром Linux; установка, переустановка и удаление через opkg и apk, установка из подписанного репозитория apk; отрисовка страницы LuCI на английском и русском.
 
-**На физическом роутере пакет пока не запускался.** Если что-то пойдёт не так, создайте [issue](https://github.com/arsutov/luci-app-ps5block/issues) с выводом `ps5block status` и `logread -e ps5block`.
+**На физическом роутере пакет пока не запускался.** Если что-то пойдёт не так, создайте [issue](https://github.com/dyadf/luci-app-ps5block/issues) с выводом `ps5block status` и `logread -e ps5block`.
 
 ## Участники
 

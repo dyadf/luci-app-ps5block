@@ -14,7 +14,7 @@ PKG_RELEASE:=1
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
 PKG_MAINTAINER:=arsutov <arsutov@users.noreply.github.com>
-PKG_URL:=https://github.com/arsutov/luci-app-ps5block
+PKG_URL:=https://github.com/dyadf/luci-app-ps5block
 
 LUCI_TITLE:=PS5 system update blocker
 LUCI_DESCRIPTION:=Blocks PlayStation 5 system software updates: DNS block, forced DNS, \

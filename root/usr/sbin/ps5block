@@ -1,6 +1,6 @@
 #!/bin/sh
 # ps5block - PlayStation 5 system update blocker for OpenWrt (nftables / fw4)
-# https://github.com/arsutov/luci-app-ps5block
+# https://github.com/dyadf/luci-app-ps5block
 # SPDX-License-Identifier: MIT
 #
 # Own nftables table "inet ps5block" with hooks that run BEFORE podkop

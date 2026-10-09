@@ -4,7 +4,7 @@ People and tools that took part in luci-app-ps5block. Listed in order of joining
 
 | Who | Role |
 |---|---|
-| [arsutov](https://github.com/arsutov) | Author and maintainer: idea, requirements, router setup (GL-MT6000, podkop, zapret2, DoH), review and testing |
+| [dyadf](https://github.com/dyadf) | Author and maintainer: idea, requirements, router setup (GL-MT6000, podkop, zapret2, DoH), review and testing |
 | Claude (Anthropic AI model) | Co-author: backend, LuCI view, translation, build and signing scripts, test bench, documentation |
 
 ## Acknowledgements
