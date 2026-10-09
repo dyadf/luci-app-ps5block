@@ -7,18 +7,35 @@
 update.playstation.net
 update.playstation.org.edgesuite.net
 # Downloads / content delivery (themis, tmdb, fswitch, rnps-crl, crepo,
-# ps4-eb, ps4-system, sgst.prod, gs2.ww.prod - games included)
+# ps4-eb, ps4-system, sgst.prod, gs2.ww.prod, gst.prod.dl - games included)
 dl.playstation.net
+gst.prod.dl.playstation.net
 # PSN community / profiles / trophies / update portal
 community.playstation.net
-# np network services (get, post)
+# np network services (get, post, ena, etc.)
 net.playstation.net
+ena.net.playstation.net
+post.net.playstation.net
 # STUN / NAT traversal
 stun.playstation.net
 # km API (sf.api, event.api)
 km.playstation.net
-# PlayStation web API (urlconfig)
+# PlayStation web API (urlconfig, feature, etc.)
 api.playstation.com
+feature.api.playstation.com
+# Apex domains (covers all *.playstation.com, *.playstation.net, *.psndl.net in dnsmasq)
+playstation.com
+playstation.net
+psndl.net
+# Regional PlayStation domains (*.playstation.com.* / *.playstation.net.*)
+playstation.com.cn
+playstation.com.br
+playstation.com.hk
+playstation.com.tw
+playstation.com.mx
+playstation.com.au
+playstation.com.edgesuite.net
+playstation.net.edgesuite.net
 # ribob01.net CDN/API (apicdn-p014, api-p014, artcdnsecure)
 ribob01.net
 # Sony Akamai DNS target (playstation.sony.akadns.net)

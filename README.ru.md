@@ -88,19 +88,19 @@ apk update && apk add luci-app-ps5block
 Скачайте `.ipk` или `.apk` со страницы [релизов](https://github.com/dyadf/luci-app-ps5block/releases) и скопируйте на роутер (`-O` нужен, если на роутере нет sftp-сервера):
 
 ```sh
-scp -O luci-app-ps5block_1.4.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
-scp -O luci-app-ps5block-1.4.0-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x и новее
+scp -O luci-app-ps5block_1.5.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
+scp -O luci-app-ps5block-1.5.0-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x и новее
 ```
 
 На роутере:
 
 ```sh
 # OpenWrt 22.03–24.10 (opkg)
-opkg install /tmp/luci-app-ps5block_1.4.0-r1_all.ipk
+opkg install /tmp/luci-app-ps5block_1.5.0-r1_all.ipk
 
 # OpenWrt 25.x и новее (apk): с ключом из keys/ в /etc/apk/keys/ подпись проверяется,
 # без него нужен --allow-untrusted
-apk add /tmp/luci-app-ps5block-1.4.0-r1.apk
+apk add /tmp/luci-app-ps5block-1.5.0-r1.apk
 ```
 
 Контрольные суммы файлов — в `SHA256SUMS` в релизе.
@@ -246,7 +246,7 @@ JSHN=/path/to/jshn.sh PATH=/path/to/openwrt-host-tools/bin:$PATH tests/run.sh
 node tests/view.test.js
 ```
 
-`tests/run.sh` проверяет включение/выключение, правила nftables, dnsmasq, cron, обновление списка серверов, консоли, podkop, rpcd, hotplug, миграцию со старых скриптов и живой трафик через мост с «консолью» и «телефоном» (147 проверок).
+`tests/run.sh` проверяет включение/выключение, правила nftables, dnsmasq, cron, обновление списка серверов, консоли, podkop, rpcd, hotplug, миграцию со старых скриптов и живой трафик через мост с «консолью» и «телефоном» (158 проверок).
 
 Пакет проверялся в эмулированном окружении OpenWrt: busybox ash, настоящие `uci`, `jshn`, `jsonfilter`, `opkg` и `apk` 3.0, собранные из исходников OpenWrt, настоящий `nft` с ядром Linux; установка, переустановка и удаление через opkg и apk, установка из подписанного репозитория apk; отрисовка страницы LuCI на английском и русском.
 

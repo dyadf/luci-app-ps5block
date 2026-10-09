@@ -92,6 +92,21 @@ setup() {
 	#!/bin/sh
 	exit 1
 	EOF
+	cat > "$TR/bin/lock" <<-'EOF'
+	#!/bin/sh
+	u=0; [ "$1" = "-u" ] && { u=1; shift; }
+	dir="${1}.lockdir"
+	if [ "$u" = 1 ]; then
+		rmdir "$dir" 2>/dev/null
+	else
+		i=0
+		while ! mkdir "$dir" 2>/dev/null; do
+			sleep 0.05 2>/dev/null || sleep 1
+			i=$((i + 1))
+			[ $i -ge 200 ] && { rmdir "$dir" 2>/dev/null; break; }
+		done
+	fi
+	EOF
 	# nslookup: the router itself (127.0.0.1) answers NXDOMAIN when the dnsmasq
 	# entry is present; public resolvers return busybox-style answers from $TR/dns
 	cat > "$TR/bin/nslookup" <<-EOF
@@ -246,6 +261,28 @@ echo "999.1.2.3" > "$TR/root/var/run/ps5block/upd4"
 P apply >/dev/null
 check "bad cache: apply self-heals" "nft list table inet ps5block && [ ! -s '$TR/root/var/run/ps5block/upd4' ]"
 
+section "all mode blocks PSN by IP (L3, resolver-independent)"
+cat > "$TR/dns" <<-'EOF'
+dus01.ps5.update.playstation.net a 23.45.67.89
+dl.playstation.net a 23.55.55.55
+community.playstation.net a 23.55.55.56
+playstation.com a 54.219.41.133
+feature.api.playstation.com a 95.100.107.187
+psndl.net a 172.67.162.196
+a192.d.akamai.net a 23.99.99.99
+EOF
+U set ps5block.main.blocklist=all; U commit ps5block; P apply >/dev/null; P refresh >/dev/null
+check "all: a PSN domain's IP is in the L3 drop set" "setelems upd4 | grep -q 23.55.55.55"
+check "all: a second PSN domain's IP too" "setelems upd4 | grep -q 23.55.55.56"
+check "all: playstation.com is in the L3 drop set" "setelems upd4 | grep -q 54.219.41.133"
+check "all: feature.api.playstation.com is in the L3 drop set" "setelems upd4 | grep -q 95.100.107.187"
+check "all: psndl.net is in the L3 drop set" "setelems upd4 | grep -q 172.67.162.196"
+check "all: shared-CDN domain is NOT dropped by IP (skip list)" "! setelems upd4 | grep -q 23.99.99.99"
+U set ps5block.main.blocklist=updates; U commit ps5block; P apply >/dev/null; P refresh >/dev/null
+check "updates: PSN domains are not pulled into L3" "! setelems upd4 | grep -q 23.55.55.55 && ! setelems upd4 | grep -q 54.219.41.133"
+check "updates: update servers still in L3" "setelems upd4 | grep -q 23.45.67.89"
+rm -f "$TR/dns"
+
 section "consoles"
 lease "$PS5B" 192.168.1.51 PS5-456
 P sync
@@ -303,6 +340,9 @@ U set ps5block.main.blocklist=all; U commit ps5block; P apply >/dev/null
 check "all preset blocks downloads" "grep -q '/dl.playstation.net/' '$DHCP'"
 check "all preset blocks community" "grep -q '/community.playstation.net/' '$DHCP'"
 check "all preset blocks ribob01.net" "grep -q '/ribob01.net/' '$DHCP'"
+check "all preset blocks playstation.com" "grep -q '/playstation.com/' '$DHCP'"
+check "all preset blocks playstation.net" "grep -q '/playstation.net/' '$DHCP'"
+check "all preset blocks psndl.net" "grep -q '/psndl.net/' '$DHCP'"
 check "all preset still blocks updates" "grep -q '/update.playstation.net/' '$DHCP'"
 U set ps5block.main.blocklist=custom; U -q delete ps5block.main.domain
 U add_list ps5block.main.domain=example.test; U commit ps5block; P apply >/dev/null

@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.5.0-r1 — 2026-10-10
+
+### Added
+- **L3 (IP-level) drop for all PSN servers in "all" mode.** In `blocklist=all` mode,
+  all PlayStation / PSN domains are now resolved into IP addresses and populated into
+  the L3 drop sets (`@upd4` / `@upd6`) alongside the system update servers. Shared CDN/DNS
+  domains (`a192.d.akamai.net`, `sony.akadns.net`) are skipped from IP drops to protect
+  unrelated traffic.
+  This ensures that even when "Force DNS to this server" is not configured (or when the
+  router's DNS dispatcher directs traffic away from dnsmasq), the console's connections
+  to PSN servers are dropped at the firewall level (`filter prerouting -170`), independent
+  of DNS.
+- **Expanded PSN domain list in `domains.all`.** Added apex domains (`playstation.com`,
+  `playstation.net`, `psndl.net`), dedicated download/API endpoints (`feature.api.playstation.com`,
+  `gst.prod.dl.playstation.net`, `ena.net.playstation.net`, `post.net.playstation.net`),
+  and regional PlayStation TLDs.
+- **Wildcard normalization.** Domain entries with `*.` (e.g. `*.playstation.com`) are
+  automatically normalized to their apex domain for dnsmasq, ensuring valid dnsmasq syntax
+  while cleanly blocking the domain and all its subdomains.
+- **Test suite synchronization.** Added stub locking in the test harness to serialize
+  background and foreground refreshes; test suite expanded to 158 checks.
+
 ## 1.4.0-r1 — 2026-10-09
 
 ### Fixed (important)
