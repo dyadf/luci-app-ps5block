@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # LAN bridge re-created (network restart): re-apply so lan_if set is correct.
 [ "$ACTION" = "ifup" ] || exit 0
 [ "$(uci -q get ps5block.main.enabled)" = "1" ] || exit 0

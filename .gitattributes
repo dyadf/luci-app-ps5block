@@ -1,0 +1,4 @@
+# shell scripts must keep LF line endings on every platform
+* text=auto eol=lf
+keys/* -text
+*.png binary

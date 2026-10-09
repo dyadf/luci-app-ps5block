@@ -1,0 +1,8 @@
+/dist/
+*.ipk
+*.apk
+*.adb
+# private signing keys must never be committed
+*.sec
+*private*.pem
+*.key

@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # luci-app-ps5block pre-remove: remove rules, dnsmasq entries and cron job
 [ -n "$IPKG_INSTROOT" ] && exit 0
 [ "$1" = "upgrade" ] && exit 0

@@ -1,8 +1,10 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # New DHCP lease: if it is a PlayStation, add it to the block set at once.
 case "$ACTION" in add|old|update) ;; *) exit 0 ;; esac
 [ "$(uci -q get ps5block.main.enabled)" = "1" ] || exit 0
 [ "$(uci -q get ps5block.main.mode)" = "global" ] && exit 0
 [ "$(uci -q get ps5block.main.autodetect)" = "0" ] && exit 0
+# shellcheck disable=SC3028 # HOSTNAME is set by the dnsmasq dhcp-script
 /usr/sbin/ps5block is-console "$MACADDR" "$HOSTNAME" || exit 0
 ( sleep 2; /usr/sbin/ps5block sync >/dev/null 2>&1 ) &

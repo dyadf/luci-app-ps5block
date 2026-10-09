@@ -1,5 +1,7 @@
 # luci-app-ps5block — PS5 system update blocker for OpenWrt
 
+[![Release](https://img.shields.io/github/v/release/arsutov/luci-app-ps5block)](https://github.com/arsutov/luci-app-ps5block/releases/latest) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![OpenWrt 22.03+](https://img.shields.io/badge/OpenWrt-22.03%2B%20(fw4)-00b5e2)
+
 [Русская версия](README.ru.md)
 
 An OpenWrt package with a LuCI web interface that stops a PlayStation 5 from downloading and installing system software updates. **Games, patches, PSN, the store and every other device on the network keep working.**
@@ -47,22 +49,49 @@ Only `ps5.update.playstation.net` and its subdomains are blocked; that is system
 
 ## Installation
 
-Copy the package to the router (`-O` is needed when the router has no sftp server):
+The packages are signed with the project key (not the OpenWrt key). The public keys are in [`keys/`](keys/) and attached to every [release](https://github.com/arsutov/luci-app-ps5block/releases).
+
+### Option 1: package feed (recommended, updates through opkg/apk)
+
+**OpenWrt 22.03–24.10 (opkg):**
 
 ```sh
-scp -O luci-app-ps5block_1.0.0-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
-scp -O luci-app-ps5block-1.0.0-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
+wget -O /etc/opkg/keys/eec9661fb33aa0db https://raw.githubusercontent.com/arsutov/luci-app-ps5block/main/keys/eec9661fb33aa0db
+echo "src/gz ps5block https://github.com/arsutov/luci-app-ps5block/releases/latest/download" >> /etc/opkg/customfeeds.conf
+opkg update && opkg install luci-app-ps5block
+```
+
+**OpenWrt 25.x and later (apk):**
+
+```sh
+wget -O /etc/apk/keys/ps5block.pem https://raw.githubusercontent.com/arsutov/luci-app-ps5block/main/keys/ps5block.pem
+echo "https://github.com/arsutov/luci-app-ps5block/releases/latest/download/packages.adb" >> /etc/apk/repositories.d/customfeeds.list
+apk update && apk add luci-app-ps5block
+```
+
+The signature is checked on every `opkg update` / `apk update`; without the key the package does not install. To update: `opkg upgrade luci-app-ps5block` or `apk upgrade luci-app-ps5block`.
+
+### Option 2: package file by hand
+
+Download the `.ipk` or `.apk` from the [releases page](https://github.com/arsutov/luci-app-ps5block/releases) and copy it to the router (`-O` is needed when the router has no sftp server):
+
+```sh
+scp -O luci-app-ps5block_1.0.1-r1_all.ipk root@192.168.1.1:/tmp/   # OpenWrt 22.03–24.10
+scp -O luci-app-ps5block-1.0.1-r1.apk     root@192.168.1.1:/tmp/   # OpenWrt 25.x and later
 ```
 
 On the router:
 
 ```sh
 # OpenWrt 22.03–24.10 (opkg)
-opkg install /tmp/luci-app-ps5block_1.0.0-r1_all.ipk
+opkg install /tmp/luci-app-ps5block_1.0.1-r1_all.ipk
 
-# OpenWrt 25.x and later (apk) - the package is not signed with the OpenWrt key
-apk add --allow-untrusted /tmp/luci-app-ps5block-1.0.0-r1.apk
+# OpenWrt 25.x and later (apk): with the key from keys/ in /etc/apk/keys/ the
+# signature is checked, without it --allow-untrusted is needed
+apk add /tmp/luci-app-ps5block-1.0.1-r1.apk
 ```
+
+File checksums are in `SHA256SUMS` in the release.
 
 Reload LuCI and open **Services → PS5 Update Block**. The package installs **disabled**, unless traces of the older scripts are found; then protection stays on (see "Migrating from the old scripts").
 
@@ -160,25 +189,42 @@ The router only controls its own network. A console connected to another network
 ## Building from source
 
 ```sh
-# quick .ipk and .apk build without the SDK
-PO2LMO=/path/to/po2lmo APK=/path/to/apk ./build.sh       # → dist/
+# quick .ipk and .apk build without the SDK → dist/
+PO2LMO=/path/to/po2lmo APK=/path/to/apk ./build.sh
+
+# signed: .apk + packages.adb (EC P-256) and Packages.sig for opkg (usign)
+PO2LMO=... APK=... APK_KEY=~/keys/apk-private.pem \
+  USIGN=/path/to/usign USIGN_KEY=~/keys/usign.sec ./build.sh
 
 # or in the OpenWrt SDK: put the directory into feeds/luci/applications/
 make package/luci-app-ps5block/compile
 ```
 
-`po2lmo` is built from `luci/modules/luci-base/src`, `apk` from apk-tools 3.x.
+`po2lmo` is built from `luci/modules/luci-base/src`, `apk` from apk-tools 3.x, `usign` from `git.openwrt.org/project/usign`. The version comes from the `Makefile` (`PKG_VERSION`, `PKG_RELEASE`). Private keys never go into the repository (`.gitignore`); the public keys are in `keys/`.
 
-## How it was tested
+## Tests
 
-The package was tested in an emulated OpenWrt environment: busybox ash, the real `uci`, `jshn`, `jsonfilter`, `opkg` and `apk` 3.0 built from OpenWrt sources, and the real `nft` with a Linux kernel. Covered:
+```sh
+# backend: busybox ash + the real uci/jshn/jsonfilter (built for the host) + the real nft
+# in a private user/network namespace; the host is not touched
+JSHN=/path/to/jshn.sh PATH=/path/to/openwrt-host-tools/bin:$PATH tests/run.sh
 
-- installation, reinstallation and removal with opkg and apk, migration from the old scripts;
-- live traffic through a bridge with a "console" and a "phone", with and without podkop's rules;
-- rendering of the LuCI page in English and Russian.
+# LuCI page: strings from the router never end up as HTML
+node tests/view.test.js
+```
 
-**It has not been run on a physical router yet.** If something goes wrong, please send the output of `ps5block status` and `logread -e ps5block`.
+`tests/run.sh` covers enable/disable, the nftables rules, dnsmasq, cron, the update server list, consoles, podkop, rpcd, hotplug, migration from the old scripts and live traffic through a bridge with a "console" and a "phone" (98 checks).
+
+The package was also tested in an emulated OpenWrt environment: busybox ash, the real `uci`, `jshn`, `jsonfilter`, `opkg` and `apk` 3.0 built from OpenWrt sources, the real `nft` with a Linux kernel; installation, reinstallation and removal with opkg and apk, installation from the signed apk feed; rendering of the LuCI page in English and Russian.
+
+**It has not been run on a physical router yet.** If something goes wrong, please open an [issue](https://github.com/arsutov/luci-app-ps5block/issues) with the output of `ps5block status` and `logread -e ps5block`.
+
+## Contributors
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-MIT
+[MIT](LICENSE) © 2026 arsutov and contributors.
+
+The MAC prefix list (`oui.txt`) is taken from the public IEEE MA-L registry and the DNS resolver addresses from their operators' public documentation; both are factual data. LuCI, OpenWrt, podkop and zapret are separate projects under their own licenses; none of their code is included. PlayStation and PS5 are trademarks of Sony Interactive Entertainment; this project is not affiliated with Sony.

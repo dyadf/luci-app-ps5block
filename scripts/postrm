@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 [ -n "$IPKG_INSTROOT" ] && exit 0
 rm -rf /var/run/ps5block /etc/ps5block.dns
 /etc/init.d/rpcd reload >/dev/null 2>&1

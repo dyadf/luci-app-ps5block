@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # luci-app-ps5block post-install / post-upgrade
 [ -n "$IPKG_INSTROOT" ] && exit 0
 

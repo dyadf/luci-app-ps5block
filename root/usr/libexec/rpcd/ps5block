@@ -1,6 +1,8 @@
 #!/bin/sh
+# SPDX-License-Identifier: MIT
 # rpcd backend for luci-app-ps5block
 
+# shellcheck disable=SC2154 # en, mac, action, name are set by json_get_var
 . /usr/share/libubox/jshn.sh
 
 ok() { json_init; json_add_int result "${1:-0}"; [ -n "$2" ] && json_add_string error "$2"; json_dump; }
