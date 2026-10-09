@@ -129,7 +129,7 @@ setup() {
 
 IP="${IP:-/usr/sbin/ip}"; [ -x "$IP" ] || IP=/sbin/ip
 NSENTER="${NSENTER:-/usr/bin/nsenter}"
-export PATH="$TR/bin:$PATH" PS5BLOCK_LEASES="$TR/leases" PS5BLOCK_ARP="$TR/arp"
+export PATH="$TR/bin:$PATH" PS5BLOCK_LEASES="$TR/leases" PS5BLOCK_ARP="$TR/arp" PS5BLOCK_PAYLOAD_DIR="$TR/payload"
 P() { "$TR/root/usr/sbin/ps5block" "$@"; }
 U() { "$TR/bin/uci" "$@"; }
 J() { P status-json | jsonfilter -e "$1"; }
@@ -260,6 +260,25 @@ U set ps5block.main.refresh_interval=junk; U commit ps5block; P apply >/dev/null
 check "junk interval falls back to 20" "grep -q '^\*/20 ' '$TR/root/etc/crontabs/root' && [ \"\$(J '@.layers.l3.interval')\" = 20 ]"
 U set ps5block.main.refresh_interval=20; U commit ps5block
 
+section "payloads (config, no network)"
+check "default payload port is 9021" "[ \"\$(J '@.payload_port')\" = 9021 ]"
+check "payloads lists the configured port" "[ \"\$(P payloads | jsonfilter -e '@.port')\" = 9021 ]"
+U set ps5block.main.payload_port=70000; U commit ps5block
+check "out-of-range port falls back to 9021" "[ \"\$(P payloads | jsonfilter -e '@.port')\" = 9021 ]"
+U set ps5block.main.payload_port=9020; U commit ps5block
+check "custom port is used" "[ \"\$(P payloads | jsonfilter -e '@.port')\" = 9020 ]"
+U set ps5block.main.payload_port=9021; U commit ps5block
+P payload-dir >/dev/null
+check "payload-dir creates the upload directory" "[ -d '$TR/payload' ]"
+check "payload: missing file reported" "! P payload $PS5 nope.bin"
+printf 'x' > "$TR/payload/u2.bin"
+check "payload: invalid target reported" "! P payload 12:34 u2.bin"
+check "payload: invalid target deletes the upload" "[ ! -e '$TR/payload/u2.bin' ]"
+printf 'x' > "$TR/payload/u3.bin"
+check "payload: unknown MAC (no IP) reported" "! P payload aa:bb:cc:00:00:99 u3.bin"
+check "payloads lists an uploaded file with its size" "printf 'ELFX' > '$TR/payload/u4.bin'; [ \"\$(P payloads | jsonfilter -e '@.payloads[@.name=\"u4.bin\"].size')\" = 4 ]"
+rm -f "$TR/payload/"*
+
 section "whole network mode"
 P mode global >/dev/null
 check "no MAC match" "! ruleset | grep -q 'ether saddr'"
@@ -287,6 +306,9 @@ check "status" "R call status | jsonfilter -e '@.version'"
 check "console: bad action" "echo '{\"mac\":\"$PS5\",\"action\":\"x\"}' | R call console | grep -q 'bad action'"
 check "console: invalid MAC reports error" "echo '{\"mac\":\"zz\",\"action\":\"include\"}' | R call console | grep -q 'invalid MAC'"
 check "console: exclude" "echo '{\"mac\":\"$PS5\",\"action\":\"exclude\"}' | R call console | grep -q '\"result\": 0' && ! setelems consoles | grep -q '$PS5'"
+check "payloads returns the port" "[ \"\$(R call payloads | jsonfilter -e '@.port')\" = 9021 ]"
+check "payload_prepare ok and creates dir" "rm -rf '$TR/payload'; R call payload_prepare | grep -q '\"result\": 0' && [ -d '$TR/payload' ]"
+check "payload: missing file via rpcd reports error" "echo '{\"target\":\"$PS5\",\"name\":\"ghost.bin\"}' | R call payload | grep -q 'payload not found'"
 check "toggle off" "echo '{\"enabled\":false}' | R call toggle >/dev/null && ! nft list table inet ps5block"
 
 section "hotplug"
@@ -361,6 +383,25 @@ if [ -x "$IP" ] && [ -x "$NSENTER" ] && "$IP" link add br-lan type bridge 2>/dev
 	send phone 1.1.1.1 443; send phone 9.9.9.9 853; send phone 8.8.8.8 53
 	check "phone: not touched" "[ \"\$(cnt doh4)\" = '$d1' ] && [ \"\$(cnt dot)\" = '$t1' ] && [ \"\$(cnt force_dns)\" = '$f1' ]"
 	check "status: packet counters" "[ \"\$(J '@.layers.dot.packets')\" -gt 0 ]"
+
+	# payload delivery: a loader on the console listens on 9021, the router sends a file
+	mkdir -p "$TR/payload"; printf 'ELF-PAYLOAD-TEST-9021' > "$TR/payload/upload.bin"
+	: > "$TR/recv"
+	inns console "$BB" nc -l -p 9021 -w 4 > "$TR/recv" 2>/dev/null &
+	sleep 0.5
+	PS5BLOCK_NC_TIMEOUT=3 P payload "$PS5" upload.bin
+	sleep 0.5
+	check "payload delivered to the console loader" "grep -q ELF-PAYLOAD-TEST-9021 '$TR/recv'"
+	check "payload deleted from the router after sending" "[ ! -e '$TR/payload/upload.bin' ]"
+	# send by IP and to the configured non-default port
+	U set ps5block.main.payload_port=9022; U commit ps5block
+	printf 'PORT-9022-OK' > "$TR/payload/upload.bin"; : > "$TR/recv"
+	inns console "$BB" nc -l -p 9022 -w 4 > "$TR/recv" 2>/dev/null &
+	sleep 0.5
+	PS5BLOCK_NC_TIMEOUT=3 P payload 192.168.1.50 upload.bin
+	sleep 0.5
+	check "payload to an IP on a custom port" "grep -q PORT-9022-OK '$TR/recv'"
+	U set ps5block.main.payload_port=9021; U commit ps5block
 	kill $pids 2>/dev/null
 else
 	echo "  skip (cannot create a bridge here)"

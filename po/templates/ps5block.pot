@@ -429,3 +429,24 @@ msgstr ""
 msgid "Blocks PlayStation 5 system software updates on the router. Games, patches, PSN and all other devices keep working."
 msgstr ""
 
+
+msgid "Payload sent to %s (%d bytes) and deleted from the router."
+msgstr ""
+
+msgid "Sending the payload failed: %s"
+msgstr ""
+
+msgid "Payload upload failed: %s"
+msgstr ""
+
+msgid "Upload a homebrew payload (ELF/bin) and send it to this console on port %d. The console must already run a payload loader. The file is deleted from the router right after sending."
+msgstr ""
+
+msgid "Send payload"
+msgstr ""
+
+msgid "Payload port"
+msgstr ""
+
+msgid "TCP port the console's homebrew payload loader listens on. Default 9021. Used by the \"Send payload\" button in the console list."
+msgstr ""

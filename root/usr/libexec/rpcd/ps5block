@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: MIT
 # rpcd backend for luci-app-ps5block
 
-# shellcheck disable=SC2154 # en, mac, action, name are set by json_get_var
+# shellcheck disable=SC2154 # en, mac, action, name, target are set by json_get_var
 . /usr/share/libubox/jshn.sh
 
 ok() { json_init; json_add_int result "${1:-0}"; [ -n "$2" ] && json_add_string error "$2"; json_dump; }
 
 case "$1" in
 list)
-	echo '{ "status": {}, "apply": {}, "refresh": {}, "toggle": { "enabled": true }, "console": { "mac": "str", "action": "str", "name": "str" } }'
+	echo '{ "status": {}, "apply": {}, "refresh": {}, "toggle": { "enabled": true }, "console": { "mac": "str", "action": "str", "name": "str" }, "payloads": {}, "payload_prepare": {}, "payload": { "target": "str", "name": "str" } }'
 	;;
 call)
 	case "$2" in
@@ -42,6 +42,20 @@ call)
 			*) ok 1 "bad action"; exit 0 ;;
 		esac
 		err="$(/usr/sbin/ps5block console-set "$mac" "$a" "$name" 2>&1 >/dev/null)"
+		ok $? "$err"
+		;;
+	payloads)
+		/usr/sbin/ps5block payloads
+		;;
+	payload_prepare)
+		dir="$(/usr/sbin/ps5block payload-dir 2>/dev/null)"
+		json_init; json_add_int result $?; json_add_string dir "$dir"; json_dump
+		;;
+	payload)
+		read -r input
+		json_load "$input"
+		json_get_var target target; json_get_var name name
+		err="$(/usr/sbin/ps5block payload "$target" "$name" 2>&1 >/dev/null)"
 		ok $? "$err"
 		;;
 	esac

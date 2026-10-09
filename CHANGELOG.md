@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.0-r1 — 2026-10-09
+
+### Added
+- **Send a homebrew payload to a console.** Each console in the status list gets a
+  "Send payload" button: upload an ELF/bin file and the router streams it to the
+  console's payload loader over TCP (default port **9021**, configurable under
+  Advanced → "Payload port"). The uploaded file is held only in tmpfs and is
+  **deleted from the router right after sending**. The console must already be
+  running a payload loader; this only transfers the file.
+- CLI: `ps5block payload <MAC|IP> <file>` and `ps5block payloads`.
+- rpcd methods `payload`, `payload_prepare`, `payloads`; ACL for `cgi-io` upload to
+  `/tmp/ps5block-payload/`. Russian translation for the new strings.
+- Tests: payload port sanitization, listing, error paths, and live delivery to a
+  listener in the console namespace over the bridge (114 checks total).
+
 ## 1.0.1-r1 — 2026-10-09
 
 First public release.

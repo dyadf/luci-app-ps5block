@@ -7,7 +7,7 @@
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.0.1"
+VERSION="1.1.0"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
@@ -17,6 +17,8 @@ CRON_FILE="/etc/crontabs/root"
 CRON_TAG="#ps5block"
 LEASES="${PS5BLOCK_LEASES:-/tmp/dhcp.leases}"
 ARP="${PS5BLOCK_ARP:-/proc/net/arp}"
+# uploaded payloads wait here (tmpfs); each is deleted right after it is sent
+PAYLOAD_DIR="${PS5BLOCK_PAYLOAD_DIR:-/tmp/ps5block-payload}"
 
 # Update server naming: <d|f|h><region>01.ps5.update.playstation.net
 REGIONS="au br cn eu hk jp kr mx ru sa tw uk us"
@@ -526,6 +528,70 @@ console_set() { # mac enabled(1|0|remove) [name]
 	uci commit ps5block
 }
 
+# ---------------------------------------------------------------- payloads --
+# Send a homebrew payload (an ELF/bin the user uploads) to a PlayStation on the
+# LAN. The console must already run a payload loader listening on the port; this
+# only streams the file over TCP to that loader, then removes it from the router.
+payload_port() {
+	local p
+	p="$(cfg payload_port 9021)"
+	case "$p" in ''|*[!0-9]*) p=9021 ;; esac
+	{ [ "$p" -ge 1 ] && [ "$p" -le 65535 ]; } || p=9021
+	echo "$p"
+}
+
+# resolve a console MAC to its current IPv4, or pass an IPv4 through unchanged
+payload_ip() {
+	local t ip
+	t="$1"
+	case "$t" in
+		*.*.*.*) echo "$t" | grep -qE '^([0-9]{1,3}\.){3}[0-9]{1,3}$' && echo "$t"; return ;;
+	esac
+	valid_mac "$t" || return 1
+	t="$(echo "$t" | lower)"
+	ip="$(detect_consoles | awk -v m="$t" '$1 == m && $2 != "-" { print $2; exit }')"
+	[ -n "$ip" ] || ip="$(awk -v m="$t" 'NR > 1 && tolower($4) == m && $1 ~ /\./ { print $1; exit }' "$ARP" 2>/dev/null)"
+	[ -n "$ip" ] && echo "$ip"
+}
+
+payload_prepare() { mkdir -p "$PAYLOAD_DIR" && chmod 700 "$PAYLOAD_DIR"; }
+
+do_payload() { # <mac|ip> <filename in PAYLOAD_DIR>
+	local target="$1" name="$2" ip port file sz rc
+	[ -n "$target" ] && [ -n "$name" ] || { echo "usage: ps5block payload <mac|ip> <file>" >&2; return 2; }
+	name="$(basename "$name")"                    # never leave PAYLOAD_DIR
+	file="$PAYLOAD_DIR/$name"
+	[ -f "$file" ] || { echo "payload not found: $name" >&2; return 2; }
+	ip="$(payload_ip "$target")" || { echo "invalid target: $target" >&2; rm -f "$file"; return 2; }
+	[ -n "$ip" ] || { echo "no IP for $target (turn the console on / check DHCP leases)" >&2; rm -f "$file"; return 2; }
+	command -v nc >/dev/null 2>&1 || { echo "nc not found" >&2; rm -f "$file"; return 1; }
+	port="$(payload_port)"
+	sz="$(wc -c < "$file" 2>/dev/null)"
+	log "sending payload '$name' ($sz bytes) to $ip:$port"
+	nc -w "${PS5BLOCK_NC_TIMEOUT:-10}" "$ip" "$port" < "$file"
+	rc=$?
+	rm -f "$file"                                 # temporary upload: never kept on the router
+	if [ "$rc" = 0 ]; then log "payload '$name' sent to $ip:$port, removed from router"
+	else log "payload '$name' to $ip:$port failed (rc=$rc), removed from router"; fi
+	return $rc
+}
+
+payloads_json() {
+	local f
+	json_init
+	json_add_int port "$(payload_port)"
+	json_add_array payloads
+	for f in "$PAYLOAD_DIR"/*; do
+		[ -f "$f" ] || continue
+		json_add_object
+		json_add_string name "$(basename "$f")"
+		json_add_int size "$(wc -c < "$f")"
+		json_close_object
+	done
+	json_close_array
+	json_dump
+}
+
 # ------------------------------------------------------------------ status --
 status_json() {
 	local mode enabled applied m4 m6 st tmp_det tmp_man act
@@ -537,6 +603,7 @@ status_json() {
 	json_add_boolean enabled "$enabled"
 	json_add_string mode "$mode"
 	json_add_boolean autodetect "$(cfg autodetect 1)"
+	json_add_int payload_port "$(payload_port)"
 	json_add_boolean applied "$applied"
 	json_add_string error "$(head -c 400 "$STATE_DIR/error" 2>/dev/null)"
 
@@ -719,6 +786,9 @@ Usage: ps5block <command>
   exclude <MAC>               exclude a console from auto-detection
   remove <MAC>                remove a manually added console
   refresh                     refresh update server IP list (L3) and consoles
+  payload <MAC|IP> <file>     send a homebrew payload to the console's loader
+                              (default port 9021) and delete it from the router
+  payloads                    list uploaded payloads waiting to be sent (JSON)
   stop                        remove runtime rules only (used by init)
   teardown                    remove everything (rules, dnsmasq entries, cron)
 EOF
@@ -733,6 +803,9 @@ case "$cmd" in
 	stop)        with_lock do_stop ;;
 	teardown)    with_lock do_teardown ;;
 	refresh)     with_lock do_refresh ;;
+	payload)     with_lock do_payload "$1" "$2" ;;
+	payloads)    payloads_json ;;
+	payload-dir) payload_prepare && echo "$PAYLOAD_DIR" ;;
 	status)      status_text ;;
 	status-json) status_json ;;
 	detect)      detect_consoles | awk 'BEGIN { print "MAC               IP               HOSTNAME             BY       ONLINE" }

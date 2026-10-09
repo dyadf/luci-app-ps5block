@@ -431,3 +431,24 @@ msgstr "Блокировка обновлений PS5"
 msgid "Blocks PlayStation 5 system software updates on the router. Games, patches, PSN and all other devices keep working."
 msgstr "Блокирует обновления системного ПО PlayStation 5 на роутере. Игры, патчи, PSN и все остальные устройства продолжают работать."
 
+
+msgid "Payload sent to %s (%d bytes) and deleted from the router."
+msgstr "Пейлоад отправлен на %s (%d байт) и удалён с роутера."
+
+msgid "Sending the payload failed: %s"
+msgstr "Не удалось отправить пейлоад: %s"
+
+msgid "Payload upload failed: %s"
+msgstr "Не удалось загрузить пейлоад: %s"
+
+msgid "Upload a homebrew payload (ELF/bin) and send it to this console on port %d. The console must already run a payload loader. The file is deleted from the router right after sending."
+msgstr "Загрузите пейлоад (ELF/bin) и отправьте его на консоль на порт %d. На консоли уже должен работать загрузчик пейлоадов. Файл удаляется с роутера сразу после отправки."
+
+msgid "Send payload"
+msgstr "Отправить пейлоад"
+
+msgid "Payload port"
+msgstr "Порт для пейлоадов"
+
+msgid "TCP port the console's homebrew payload loader listens on. Default 9021. Used by the \"Send payload\" button in the console list."
+msgstr "TCP-порт, на котором загрузчик пейлоадов консоли принимает соединения. По умолчанию 9021. Используется кнопкой «Отправить пейлоад» в списке консолей."

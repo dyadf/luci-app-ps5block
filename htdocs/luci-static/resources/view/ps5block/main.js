@@ -13,6 +13,10 @@ var callApply = rpc.declare({ object: 'ps5block', method: 'apply', expect: { '':
 var callRefresh = rpc.declare({ object: 'ps5block', method: 'refresh', expect: { '': {} } });
 var callToggle = rpc.declare({ object: 'ps5block', method: 'toggle', params: [ 'enabled' ], expect: { '': {} } });
 var callConsole = rpc.declare({ object: 'ps5block', method: 'console', params: [ 'mac', 'action', 'name' ], expect: { '': {} } });
+var callPayloadPrepare = rpc.declare({ object: 'ps5block', method: 'payload_prepare', expect: { '': {} } });
+var callPayloadSend = rpc.declare({ object: 'ps5block', method: 'payload', params: [ 'target', 'name' ], expect: { '': {} } });
+
+var PAYLOAD_PATH = '/tmp/ps5block-payload/upload.bin';
 
 var COLORS = { ok: '#2e7d32', warn: '#e65100', bad: '#c62828', off: '#757575' };
 
@@ -76,6 +80,24 @@ return view.extend({
 			callStatus().catch(function(e) { return { _error: String(e) }; }),
 			uci.load('ps5block')
 		]);
+	},
+
+	sendPayload: function(target, label) {
+		return callPayloadPrepare().then(function() {
+			return ui.uploadFile(PAYLOAD_PATH);
+		}).then(function(info) {
+			var size = (info && info.size) || 0;
+			return callPayloadSend(target, 'upload.bin').then(function(res) {
+				if (res && res.result === 0)
+					ui.addNotification(null, E('p', [ _('Payload sent to %s (%d bytes) and deleted from the router.').format(label, size) ]), 'info');
+				else
+					ui.addNotification(null, E('p', [ _('Sending the payload failed: %s').format((res && (res.error || res.result)) || '?') ]), 'danger');
+			});
+		}).catch(function(e) {
+			var msg = String((e && e.message) || e || '');
+			if (!/cancel/i.test(msg))
+				ui.addNotification(null, E('p', [ _('Payload upload failed: %s').format(msg) ]), 'danger');
+		});
 	},
 
 	consoleAction: function(mac, action, name) {
@@ -165,6 +187,13 @@ return view.extend({
 				if (c.manual)
 					actions.push(' ', E('button', { 'class': 'cbi-button', 'title': _('Remove from the list of manually added consoles'), 'click': ui.createHandlerFn(self, 'consoleAction', c.mac, 'remove', '') }, _('Forget')));
 			}
+
+			if (c.ip && c.ip !== '-')
+				actions.push(' ', E('button', {
+					'class': 'cbi-button cbi-button-action',
+					'title': _('Upload a homebrew payload (ELF/bin) and send it to this console on port %d. The console must already run a payload loader. The file is deleted from the router right after sending.').format(st.payload_port || 9021),
+					'click': ui.createHandlerFn(self, 'sendPayload', c.ip, consoleLabel(c))
+				}, _('Send payload')));
 
 			ct.appendChild(E('tr', { 'class': 'tr' }, [
 				E('td', { 'class': 'td' }, E('strong', {}, [ consoleLabel(c) ])),
@@ -318,6 +347,11 @@ return view.extend({
 		o = s.taboption('advanced', form.Value, 'refresh_interval', _('Refresh interval (minutes)'), _('How often the update server address list and the console list are refreshed.'));
 		o.datatype = 'range(5,1440)';
 		o.default = '20';
+
+		o = s.taboption('advanced', form.Value, 'payload_port', _('Payload port'), _('TCP port the console\'s homebrew payload loader listens on. Default 9021. Used by the "Send payload" button in the console list.'));
+		o.datatype = 'port';
+		o.placeholder = '9021';
+		o.default = '9021';
 
 		o = s.taboption('advanced', form.DynamicList, 'domain', _('Blocked domains'), _('Blocked together with all subdomains. Default: ps5.update.playstation.net (system software only; games and patches use other domains).'));
 		o.datatype = 'hostname';

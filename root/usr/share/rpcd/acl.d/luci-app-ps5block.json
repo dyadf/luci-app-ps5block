@@ -3,14 +3,18 @@
 		"description": "Grant access to PS5 Update Block",
 		"read": {
 			"ubus": {
-				"ps5block": [ "status" ],
+				"ps5block": [ "status", "payloads" ],
 				"network.interface": [ "dump" ]
 			},
 			"uci": [ "ps5block", "network" ]
 		},
 		"write": {
+			"cgi-io": [ "upload" ],
+			"file": {
+				"/tmp/ps5block-payload/*": [ "write" ]
+			},
 			"ubus": {
-				"ps5block": [ "apply", "refresh", "toggle", "console" ]
+				"ps5block": [ "apply", "refresh", "toggle", "console", "payload", "payload_prepare" ]
 			},
 			"uci": [ "ps5block" ]
 		}

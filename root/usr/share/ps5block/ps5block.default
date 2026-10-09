@@ -27,6 +27,8 @@ config ps5block 'main'
 	option global_l3_block '0'
 
 	option refresh_interval '20'
+	# TCP port the console's homebrew payload loader listens on
+	option payload_port '9021'
 	list domain 'ps5.update.playstation.net'
 	list resolver '1.1.1.1'
 	list resolver '8.8.8.8'
