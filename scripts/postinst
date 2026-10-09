@@ -1,0 +1,15 @@
+#!/bin/sh
+# luci-app-ps5block post-install / post-upgrade
+[ -n "$IPKG_INSTROOT" ] && exit 0
+
+if [ -f /etc/uci-defaults/90-luci-ps5block ]; then
+	( . /etc/uci-defaults/90-luci-ps5block ) && rm -f /etc/uci-defaults/90-luci-ps5block
+fi
+[ -f /etc/config/ps5block ] || cp /usr/share/ps5block/ps5block.default /etc/config/ps5block
+
+/etc/init.d/rpcd reload >/dev/null 2>&1 || /etc/init.d/rpcd restart >/dev/null 2>&1
+/etc/init.d/ps5block enable >/dev/null 2>&1
+# applies rules only if blocking is enabled in /etc/config/ps5block
+/etc/init.d/ps5block restart >/dev/null 2>&1
+rm -f /tmp/luci-indexcache* 2>/dev/null; rm -rf /tmp/luci-modulecache 2>/dev/null
+exit 0

@@ -1,0 +1,38 @@
+
+config ps5block 'main'
+	option enabled '0'
+	# mac    - block only PlayStation consoles (by MAC address)
+	# global - block for every client of the LAN networks below
+	option mode 'mac'
+	option autodetect '1'
+	list lan_iface 'lan'
+
+	# Layer 1: dnsmasq answers NXDOMAIN for update domains (always network-wide)
+	option dns_block '1'
+
+	# Layers for "mac" mode (consoles only)
+	option force_dns '1'
+	# auto - drop external DNS only for consoles that podkop routes completely
+	#        (podkop's tproxy would otherwise take DNS before the redirect)
+	option dns_strict 'auto'
+	option block_dot '1'
+	option block_doh '1'
+	option l3_block '1'
+
+	# Layers for "global" mode (every LAN client) - safer defaults
+	option global_force_dns '1'
+	option global_dns_strict '0'
+	option global_block_dot '0'
+	option global_block_doh '0'
+	option global_l3_block '0'
+
+	option refresh_interval '20'
+	list domain 'ps5.update.playstation.net'
+	list resolver '1.1.1.1'
+	list resolver '8.8.8.8'
+
+# Consoles added by hand (or excluded from auto-detection with enabled '0')
+#config console
+#	option name 'PS5 living room'
+#	option mac 'aa:bb:cc:dd:ee:ff'
+#	option enabled '1'

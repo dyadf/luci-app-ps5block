@@ -1,0 +1,433 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: luci-app-ps5block\n"
+"Language: ru\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+msgid "never"
+msgstr "никогда"
+
+msgid "PlayStation"
+msgstr "PlayStation"
+
+msgid "No consoles to block: none detected and none added. Turn the console on (it must get an address from this router) or add its MAC address in the \"Consoles\" section below."
+msgstr "Нет консолей для блокировки: ни одна не обнаружена и не добавлена. Включите консоль (она должна получить адрес от этого роутера) или добавьте её MAC-адрес в разделе «Консоли» ниже."
+
+msgid "Several PlayStation consoles were detected. With auto-detection on, all of them are blocked; use \"Exclude\" in the list below for any console that should keep updating."
+msgstr "Обнаружено несколько консолей PlayStation. При включённом автоопределении блокируются все; нажмите «Исключить» в списке ниже для консоли, которой обновления нужны."
+
+msgid "Blocking is enabled, but the firewall rules are not loaded. Press \"Re-apply rules\" or check the error below."
+msgstr "Блокировка включена, но правила firewall не загружены. Нажмите «Применить правила заново» или посмотрите ошибку ниже."
+
+msgid "The podkop configuration contains PlayStation domains. Remove them: podkop would hand out fake IPs for these domains and interfere with the DNS block."
+msgstr "В конфигурации podkop есть домены PlayStation. Удалите их: podkop будет выдавать для них фейковые IP и мешать DNS-блокировке."
+
+msgid "Console %s is routed completely through podkop and strict DNS is off. podkop can take its DNS before the redirect; set \"Strict DNS\" to \"Auto\" or \"On\"."
+msgstr "Консоль %s полностью маршрутизируется через podkop, а строгий DNS выключен. podkop может перехватить её DNS раньше перенаправления; установите «Строгий DNS» в «Авто» или «Вкл»."
+
+msgid "Console %s is routed completely through podkop. Strict DNS is applied to it automatically, so it can only use the router as DNS server."
+msgstr "Консоль %s полностью маршрутизируется через podkop. К ней автоматически применён строгий DNS: она может использовать только роутер как DNS-сервер."
+
+msgid "AdGuard Home is running. If it serves DNS on port 53 instead of dnsmasq, the DNS layer does not work; add the update domains to AdGuard Home's blocklist as well."
+msgstr "Запущен AdGuard Home. Если он обслуживает DNS на порту 53 вместо dnsmasq, DNS-уровень не работает; добавьте домены обновлений и в чёрный список AdGuard Home."
+
+msgid "The DNS block entry is missing from dnsmasq. Press \"Re-apply rules\"."
+msgstr "Запись DNS-блокировки отсутствует в dnsmasq. Нажмите «Применить правила заново»."
+
+msgid "Off"
+msgstr "Выкл"
+
+msgid "Active"
+msgstr "Работает"
+
+msgid "Not loaded"
+msgstr "Не загружен"
+
+msgid "Failed: %s"
+msgstr "Ошибка: %s"
+
+msgid "Status is not available (%s). Try reloading the page; if it persists, run \"/etc/init.d/rpcd restart\" on the router."
+msgstr "Статус недоступен (%s). Обновите страницу; если не помогает, выполните на роутере «/etc/init.d/rpcd restart»."
+
+msgid "Blocking is disabled"
+msgstr "Блокировка выключена"
+
+msgid "Error: rules are not loaded"
+msgstr "Ошибка: правила не загружены"
+
+msgid "Updates are blocked for the whole network"
+msgstr "Обновления заблокированы для всей сети"
+
+msgid "Updates are blocked for %d console(s)"
+msgstr "Обновления заблокированы для консолей: %d"
+
+msgid "Enabled, but no console is selected yet"
+msgstr "Включено, но ни одна консоль ещё не выбрана"
+
+msgid "Disable blocking"
+msgstr "Выключить блокировку"
+
+msgid "Enable blocking"
+msgstr "Включить блокировку"
+
+msgid "Rules re-applied."
+msgstr "Правила применены заново."
+
+msgid "Re-apply rules"
+msgstr "Применить правила заново"
+
+msgid "Mode: %s"
+msgstr "Режим: %s"
+
+msgid "whole network"
+msgstr "вся сеть"
+
+msgid "consoles by MAC"
+msgstr "консоли по MAC"
+
+msgid "nftables error:"
+msgstr "Ошибка nftables:"
+
+msgid "Console"
+msgstr "Консоль"
+
+msgid "MAC address"
+msgstr "MAC-адрес"
+
+msgid "IP address"
+msgstr "IP-адрес"
+
+msgid "Network"
+msgstr "Сеть"
+
+msgid "Found by"
+msgstr "Найдена по"
+
+msgid "Update block"
+msgstr "Блокировка обновлений"
+
+msgid "No PlayStation consoles found. Turn the console on and connect it to this router, then wait a few seconds."
+msgstr "Консоли PlayStation не найдены. Включите консоль, подключите её к этому роутеру и подождите несколько секунд."
+
+msgid "MAC vendor (Sony)"
+msgstr "производителю MAC (Sony)"
+
+msgid "device name"
+msgstr "имени устройства"
+
+msgid "added by hand"
+msgstr "добавлена вручную"
+
+msgid "Disabled"
+msgstr "Выключено"
+
+msgid "Blocked (whole network)"
+msgstr "Заблокировано (вся сеть)"
+
+msgid "Blocked"
+msgstr "Заблокировано"
+
+msgid "Excluded"
+msgstr "Исключена"
+
+msgid "Not blocked"
+msgstr "Не заблокировано"
+
+msgid "Exclude"
+msgstr "Исключить"
+
+msgid "Block"
+msgstr "Блокировать"
+
+msgid "Remove from the list of manually added consoles"
+msgstr "Удалить из списка добавленных вручную"
+
+msgid "Forget"
+msgstr "Забыть"
+
+msgid "online"
+msgstr "в сети"
+
+msgid "offline"
+msgstr "не в сети"
+
+msgid "Consoles"
+msgstr "Консоли"
+
+msgid "%d detected"
+msgstr "обнаружено: %d"
+
+msgid "update domain does not resolve"
+msgstr "домен обновлений не резолвится"
+
+msgid "update domain still resolves!"
+msgstr "домен обновлений всё ещё резолвится!"
+
+msgid "test failed"
+msgstr "проверка не удалась"
+
+msgid "Applied to clients routed completely by podkop: %s"
+msgstr "Применяется к клиентам, которых podkop маршрутизирует целиком: %s"
+
+msgid "Applied to all blocked devices."
+msgstr "Применяется ко всем блокируемым устройствам."
+
+msgid "Not needed: no blocked device is routed completely by podkop."
+msgstr "Не требуется: podkop не маршрутизирует целиком ни одно блокируемое устройство."
+
+msgid "1. DNS block"
+msgstr "1. DNS-блокировка"
+
+msgid "dnsmasq answers \"domain does not exist\" for the update servers."
+msgstr "dnsmasq отвечает «домен не существует» для серверов обновлений."
+
+msgid "Check on the router: "
+msgstr "Проверка на роутере: "
+
+msgid "2. DNS redirect"
+msgstr "2. Перенаправление DNS"
+
+msgid "Any DNS request (port 53) to any server is answered by the router, so manual DNS on the console does not help."
+msgstr "Любой DNS-запрос (порт 53) к любому серверу обрабатывает роутер, поэтому ручной DNS на консоли не поможет."
+
+msgid "Redirected requests: %d"
+msgstr "Перенаправлено запросов: %d"
+
+msgid "3. Strict DNS"
+msgstr "3. Строгий DNS"
+
+msgid "External DNS is dropped before podkop can intercept it; the console must use the router as DNS server."
+msgstr "Внешний DNS отбрасывается раньше, чем его сможет перехватить podkop; консоль обязана использовать роутер как DNS-сервер."
+
+msgid "Dropped: %d"
+msgstr "Отброшено: %d"
+
+msgid "4. DoT / DoQ"
+msgstr "4. DoT / DoQ"
+
+msgid "Encrypted DNS on port 853 is dropped."
+msgstr "Шифрованный DNS на порту 853 отбрасывается."
+
+msgid "5. DoH"
+msgstr "5. DoH"
+
+msgid "Connections to well-known public DNS/DoH resolvers are dropped (port 53 is redirected instead)."
+msgstr "Соединения с известными публичными DNS/DoH-резолверами отбрасываются (порт 53 вместо этого перенаправляется)."
+
+msgid "Resolvers in the list: %d IPv4, %d IPv6. Dropped: %d"
+msgstr "Резолверов в списке: %d IPv4, %d IPv6. Отброшено: %d"
+
+msgid "6. Update servers (L3)"
+msgstr "6. Серверы обновлений (L3)"
+
+msgid "Update server IP addresses are dropped even if the console already knows them."
+msgstr "IP-адреса серверов обновлений отбрасываются, даже если консоль уже их знает."
+
+msgid "Addresses: %d IPv4, %d IPv6. Updated: %s (every %d min). Dropped: %d"
+msgstr "Адресов: %d IPv4, %d IPv6. Обновлено: %s (каждые %d мин). Отброшено: %d"
+
+msgid "Protection layers"
+msgstr "Уровни защиты"
+
+msgid "Refreshing the update server list in the background. The counters update in a few seconds."
+msgstr "Список серверов обновлений обновляется в фоне. Счётчики изменятся через несколько секунд."
+
+msgid "Refresh update server list now"
+msgstr "Обновить список серверов сейчас"
+
+msgid "not installed"
+msgstr "не установлен"
+
+msgid "running"
+msgstr "запущен"
+
+msgid "stopped"
+msgstr "остановлен"
+
+msgid "Compatibility"
+msgstr "Совместимость"
+
+msgid "compatible: the block runs before podkop (priority -170 vs -150), console traffic to update servers never reaches the proxy."
+msgstr "совместимо: блокировка срабатывает раньше podkop (приоритет -170 против -150), трафик консоли к серверам обновлений до прокси не доходит."
+
+msgid "compatible: dropped packets never reach zapret queues."
+msgstr "совместимо: отброшенные пакеты не попадают в очереди zapret."
+
+msgid "compatible: works as dnsmasq upstream; the dnsmasq block answers first."
+msgstr "совместимо: работает как вышестоящий сервер dnsmasq; блокировка dnsmasq отвечает первой."
+
+msgid "if it replaces dnsmasq on port 53, add the update domains to its blocklist."
+msgstr "если он заменяет dnsmasq на порту 53, добавьте домены обновлений в его чёрный список."
+
+msgid "Connect the console to this router"
+msgstr "Подключите консоль к этому роутеру"
+
+msgid "Wired or Wi-Fi. The console must get its address from this router (DHCP). PS5 has different MAC addresses for LAN cable and Wi-Fi; both are detected automatically."
+msgstr "По кабелю или Wi-Fi. Консоль должна получать адрес от этого роутера (DHCP). У PS5 разные MAC-адреса для кабеля и Wi-Fi; оба определяются автоматически."
+
+msgid "Set DNS to \"Automatic\""
+msgstr "Установите DNS «Автоматически»"
+
+msgid "PS5: Settings → Network → Settings → Set Up Internet Connection → your network → Advanced Settings → DNS Settings: Automatic. Manual DNS is also redirected, but \"Automatic\" is the most reliable, especially with podkop."
+msgstr "PS5: Настройки → Сеть → Настройки → Настроить соединение с Интернетом → ваша сеть → Расширенные настройки → Настройки DNS: Автоматически. Ручной DNS тоже перенаправляется, но «Автоматически» надёжнее всего, особенно вместе с podkop."
+
+msgid "Turn off automatic updates"
+msgstr "Выключите автоматические обновления"
+
+msgid "PS5: Settings → System → System Software → System Software Update and Settings → turn off \"Download Update Files Automatically\" and \"Install Update Files Automatically\"."
+msgstr "PS5: Настройки → Система → Системное программное обеспечение → Обновление системного программного обеспечения и настройки → выключите «Автоматически загружать файлы обновлений» и «Автоматически устанавливать файлы обновлений»."
+
+msgid "Delete an update that was already downloaded"
+msgstr "Удалите уже скачанное обновление"
+
+msgid "The router cannot remove files that are already on the console. If a \"system update downloaded\" notice is shown, delete that download on the console before it is installed."
+msgstr "Роутер не может удалить файлы, которые уже на консоли. Если есть уведомление о загруженном обновлении системы, удалите эту загрузку на консоли до установки."
+
+msgid "Enable blocking here and check the console list"
+msgstr "Включите блокировку здесь и проверьте список консолей"
+
+msgid "The console appears in the list above with status \"Blocked\". If you have several consoles, all are blocked; use \"Exclude\" for the ones that may update."
+msgstr "Консоль появится в списке выше со статусом «Заблокировано». Если консолей несколько, блокируются все; нажмите «Исключить» для тех, которым можно обновляться."
+
+msgid "Restart the console"
+msgstr "Перезагрузите консоль"
+
+msgid "Turn it off completely (not rest mode) and on again so it forgets cached DNS answers."
+msgstr "Полностью выключите её (не режим покоя) и включите снова, чтобы она забыла закэшированные DNS-ответы."
+
+msgid "Check"
+msgstr "Проверьте"
+
+msgid "PS5: Settings → System → System Software → System Software Update and Settings → Update System Software → Update Using Internet. The console must report an error instead of finding a new version. Games, patches and PSN keep working."
+msgstr "PS5: Настройки → Система → Системное программное обеспечение → Обновление системного программного обеспечения и настройки → Обновить системное программное обеспечение → Обновить через Интернет. Консоль должна выдать ошибку, а не найти новую версию. Игры, патчи и PSN продолжают работать."
+
+msgid "How to set up the console"
+msgstr "Как настроить консоль"
+
+msgid "Limits: a console connected to another network (phone hotspot, another router) or updated from a USB drive is not covered by the router."
+msgstr "Ограничения: консоль, подключённая к другой сети (раздача с телефона, другой роутер) или обновлённая с USB-накопителя, роутером не контролируется."
+
+msgid "Settings"
+msgstr "Настройки"
+
+msgid "General"
+msgstr "Основные"
+
+msgid "Advanced"
+msgstr "Дополнительно"
+
+msgid "Blocking mode"
+msgstr "Режим блокировки"
+
+msgid "<b>Consoles only</b>: rules apply only to PlayStation consoles (by MAC), all other devices are untouched. <b>Whole network</b>: rules apply to every client of the selected networks; use it if the console MAC changes or you want no exceptions. podkop and zapret keep working in both modes."
+msgstr "<b>Только консоли</b>: правила действуют только на консоли PlayStation (по MAC), остальные устройства не затрагиваются. <b>Вся сеть</b>: правила действуют на всех клиентов выбранных сетей; подходит, если MAC консоли меняется или нужны правила без исключений. podkop и zapret продолжают работать в обоих режимах."
+
+msgid "Consoles only (by MAC address)"
+msgstr "Только консоли (по MAC-адресу)"
+
+msgid "Whole network"
+msgstr "Вся сеть"
+
+msgid "Detect consoles automatically"
+msgstr "Определять консоли автоматически"
+
+msgid "Finds consoles by the Sony Interactive Entertainment MAC prefix and by device name (DHCP leases and ARP). New consoles are added as soon as they get an address."
+msgstr "Находит консоли по MAC-префиксу Sony Interactive Entertainment и по имени устройства (аренды DHCP и ARP). Новые консоли добавляются сразу после получения адреса."
+
+msgid "Networks"
+msgstr "Сети"
+
+msgid "Networks where consoles (or, in \"Whole network\" mode, all clients) are connected. Usually \"lan\"; add a guest network if the console uses it."
+msgstr "Сети, к которым подключены консоли (или, в режиме «Вся сеть», все клиенты). Обычно «lan»; добавьте гостевую сеть, если консоль подключена к ней."
+
+msgid "DNS block"
+msgstr "DNS-блокировка"
+
+msgid "dnsmasq answers NXDOMAIN for the update domains. Always network-wide; no other device uses these domains."
+msgstr "dnsmasq отвечает NXDOMAIN для доменов обновлений. Всегда действует на всю сеть; другим устройствам эти домены не нужны."
+
+msgid "DNS redirect"
+msgstr "Перенаправление DNS"
+
+msgid "Answer every DNS request of the console from the router, even with manual DNS on the console."
+msgstr "Отвечать на любой DNS-запрос консоли с роутера, даже если на консоли указан ручной DNS."
+
+msgid "Strict DNS"
+msgstr "Строгий DNS"
+
+msgid "Drop console DNS requests to external servers instead of redirecting them. \"Auto\" enables it only for consoles that podkop routes completely, because podkop would otherwise intercept their DNS first."
+msgstr "Отбрасывать DNS-запросы консоли к внешним серверам вместо перенаправления. «Авто» включает это только для консолей, которых podkop маршрутизирует целиком, иначе podkop перехватит их DNS первым."
+
+msgid "Auto (only when podkop routes the console)"
+msgstr "Авто (только если podkop маршрутизирует консоль)"
+
+msgid "On"
+msgstr "Вкл"
+
+msgid "Block DoT / DoQ"
+msgstr "Блокировать DoT / DoQ"
+
+msgid "Drop encrypted DNS on port 853."
+msgstr "Отбрасывать шифрованный DNS на порту 853."
+
+msgid "Block DoH resolvers"
+msgstr "Блокировать DoH-резолверы"
+
+msgid "Drop connections to well-known public DNS-over-HTTPS resolvers."
+msgstr "Отбрасывать соединения с известными публичными DNS-over-HTTPS-резолверами."
+
+msgid "Block update servers by IP (L3)"
+msgstr "Блокировать серверы обновлений по IP (L3)"
+
+msgid "Drop update server addresses directly. The list is refreshed by the router in the background."
+msgstr "Отбрасывать адреса серверов обновлений напрямую. Список обновляется роутером в фоне."
+
+msgid "Answer every DNS request in the network from the router. Compatible with podkop (it needs clients to use the router DNS anyway)."
+msgstr "Отвечать на любой DNS-запрос в сети с роутера. Совместимо с podkop (ему и так нужно, чтобы клиенты использовали DNS роутера)."
+
+msgid "Drop DNS requests to external servers for every client. Devices with manual DNS lose name resolution; enable only if needed."
+msgstr "Отбрасывать DNS-запросы к внешним серверам для всех клиентов. Устройства с ручным DNS потеряют разрешение имён; включайте только при необходимости."
+
+msgid "Drop port 853 for every client. Browsers and phones with \"Private DNS\" fall back to normal DNS."
+msgstr "Отбрасывать порт 853 для всех клиентов. Браузеры и телефоны с «Частным DNS» перейдут на обычный DNS."
+
+msgid "Drop connections to public DoH resolvers for every client. Some apps may show DNS errors before falling back."
+msgstr "Отбрасывать соединения с публичными DoH-резолверами для всех клиентов. Некоторые приложения могут показать ошибку DNS, прежде чем перейти на обычный."
+
+msgid "Update servers share CDN addresses with other sites; for the whole network this can block unrelated content. Off by default."
+msgstr "Серверы обновлений делят адреса CDN с другими сайтами; для всей сети это может заблокировать посторонний контент. По умолчанию выключено."
+
+msgid "Refresh interval (minutes)"
+msgstr "Интервал обновления (минуты)"
+
+msgid "How often the update server address list and the console list are refreshed."
+msgstr "Как часто обновляются список адресов серверов обновлений и список консолей."
+
+msgid "Blocked domains"
+msgstr "Блокируемые домены"
+
+msgid "Blocked together with all subdomains. Default: ps5.update.playstation.net (system software only; games and patches use other domains)."
+msgstr "Блокируются вместе со всеми поддоменами. По умолчанию: ps5.update.playstation.net (только системное ПО; игры и патчи используют другие домены)."
+
+msgid "Resolvers for the address list"
+msgstr "Резолверы для списка адресов"
+
+msgid "Public DNS servers the router asks for update server addresses."
+msgstr "Публичные DNS-серверы, у которых роутер узнаёт адреса серверов обновлений."
+
+msgid "Consoles added by hand"
+msgstr "Консоли, добавленные вручную"
+
+msgid "Add a console that is not detected automatically, or keep a detected console unblocked by adding it with \"Block\" turned off. The buttons in the status list above do the same."
+msgstr "Добавьте консоль, которая не определилась автоматически, или оставьте обнаруженную консоль без блокировки, добавив её с выключенным «Блокировать». Кнопки в списке статуса выше делают то же самое."
+
+msgid "Name"
+msgstr "Имя"
+
+msgid "PS5 Update Block"
+msgstr "Блокировка обновлений PS5"
+
+msgid "Blocks PlayStation 5 system software updates on the router. Games, patches, PSN and all other devices keep working."
+msgstr "Блокирует обновления системного ПО PlayStation 5 на роутере. Игры, патчи, PSN и все остальные устройства продолжают работать."
+

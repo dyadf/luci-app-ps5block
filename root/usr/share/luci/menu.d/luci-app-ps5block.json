@@ -1,0 +1,14 @@
+{
+	"admin/services/ps5block": {
+		"title": "PS5 Update Block",
+		"order": 60,
+		"action": {
+			"type": "view",
+			"path": "ps5block/main"
+		},
+		"depends": {
+			"acl": [ "luci-app-ps5block" ],
+			"uci": { "ps5block": true }
+		}
+	}
+}

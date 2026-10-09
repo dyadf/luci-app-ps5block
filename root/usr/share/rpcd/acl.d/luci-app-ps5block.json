@@ -1,0 +1,18 @@
+{
+	"luci-app-ps5block": {
+		"description": "Grant access to PS5 Update Block",
+		"read": {
+			"ubus": {
+				"ps5block": [ "status" ],
+				"network.interface": [ "dump" ]
+			},
+			"uci": [ "ps5block", "network" ]
+		},
+		"write": {
+			"ubus": {
+				"ps5block": [ "apply", "refresh", "toggle", "console" ]
+			},
+			"uci": [ "ps5block" ]
+		}
+	}
+}

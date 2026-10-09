@@ -1,0 +1,23 @@
+#!/bin/sh /etc/rc.common
+# ps5block - PlayStation 5 system update blocker
+
+START=99
+STOP=10
+USE_PROCD=1
+
+start_service() {
+	/usr/sbin/ps5block apply >/dev/null 2>&1
+}
+
+stop_service() {
+	# runtime rules only; config and dnsmasq entries are kept
+	/usr/sbin/ps5block stop >/dev/null 2>&1
+}
+
+reload_service() {
+	/usr/sbin/ps5block apply >/dev/null 2>&1
+}
+
+service_triggers() {
+	procd_add_reload_trigger "ps5block"
+}

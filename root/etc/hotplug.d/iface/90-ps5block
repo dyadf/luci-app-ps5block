@@ -1,0 +1,7 @@
+#!/bin/sh
+# LAN bridge re-created (network restart): re-apply so lan_if set is correct.
+[ "$ACTION" = "ifup" ] || exit 0
+[ "$(uci -q get ps5block.main.enabled)" = "1" ] || exit 0
+nets="$(uci -q get ps5block.main.lan_iface)"
+case " ${nets:-lan} " in *" $INTERFACE "*) ;; *) exit 0 ;; esac
+( sleep 3; /usr/sbin/ps5block apply >/dev/null 2>&1 ) &

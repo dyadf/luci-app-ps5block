@@ -1,0 +1,72 @@
+#!/bin/sh
+# install default config if missing (never overwrite user settings)
+fresh=0
+if [ ! -f /etc/config/ps5block ]; then
+	cp /usr/share/ps5block/ps5block.default /etc/config/ps5block
+	fresh=1
+fi
+
+# ---- migrate from earlier stand-alone scripts -------------------------------
+# 1) ps5block.sh (fw4 uci rules "ps5blk_*", include, cron, /etc/ps5block.conf)
+old_macs=""; old_enabled=0
+if [ -f /etc/ps5block.conf ]; then
+	old_macs="$(PS5_MAC=""; . /etc/ps5block.conf 2>/dev/null; echo "$PS5_MAC")"
+	old_enabled="$(ENABLED=0; . /etc/ps5block.conf 2>/dev/null; echo "$ENABLED")"
+fi
+fw_changed=0
+for s in $(uci -q show firewall | sed -n "s/^firewall\.\(ps5blk_[a-z0-9_]*\)=.*/\1/p"); do
+	uci -q delete "firewall.$s" && fw_changed=1
+done
+if [ "$fw_changed" = "1" ]; then
+	uci -q commit firewall
+	rm -f /etc/ps5block-fw.sh /etc/ps5block.conf
+	logger -t ps5block "migration: removed firewall rules of the old ps5block.sh script"
+	[ -n "$IPKG_INSTROOT" ] || /etc/init.d/firewall reload >/dev/null 2>&1
+fi
+# old cron line carried the same tag; the service rewrites it, drop it for now
+[ -f /etc/crontabs/root ] && grep -q 'ps5block.sh refresh' /etc/crontabs/root && \
+	sed -i '/ps5block\.sh refresh/d' /etc/crontabs/root
+
+# 2) ps5_update_block.sh (41 dnsmasq "address" entries, incl. game download domains)
+dns_changed=0
+for s in $(uci -q show dhcp | sed -n "s/^dhcp\.\([^.=]*\)=dnsmasq$/\1/p"); do
+	for a in $(uci -q get "dhcp.$s.address"); do
+		case "$a" in
+			/[dfh][a-z][a-z]01.ps5.update.playstation.net/|/sgst.prod.dl.playstation.net/|/gs2.ww.prod.dl.playstation.net/)
+				uci -q del_list "dhcp.$s.address=$a" && dns_changed=1 ;;
+		esac
+	done
+done
+if [ "$dns_changed" = "1" ]; then
+	uci -q commit dhcp
+	logger -t ps5block "migration: removed dnsmasq entries of ps5_update_block.sh (now managed by ps5block)"
+	[ -n "$IPKG_INSTROOT" ] || /etc/init.d/dnsmasq restart >/dev/null 2>&1
+fi
+
+# keep the console protected: a fresh install that replaces a working old
+# block starts enabled, with the old script's consoles carried over
+if [ "$fresh" = "1" ]; then
+	for m in $old_macs; do
+		echo "$m" | grep -qiE '^([0-9a-f]{2}:){5}[0-9a-f]{2}$' || continue
+		uci -q add ps5block console >/dev/null
+		uci -q set ps5block.@console[-1].mac="$(echo "$m" | tr 'A-F' 'a-f')"
+		uci -q set ps5block.@console[-1].name="PS5 (migrated)"
+		uci -q set ps5block.@console[-1].enabled=1
+	done
+	if [ "$old_enabled" = "1" ] || [ "$dns_changed" = "1" ]; then
+		uci -q set ps5block.main.enabled=1
+		logger -t ps5block "migration: old update block was active, blocking enabled"
+	fi
+	uci -q commit ps5block
+fi
+
+# LuCI < 23.05 reload hook
+if [ -f /etc/config/ucitrack ] && ! uci -q get ucitrack.@ps5block[0] >/dev/null; then
+	uci -q add ucitrack ps5block >/dev/null
+	uci -q set ucitrack.@ps5block[-1].init=ps5block
+	uci -q commit ucitrack
+fi
+
+rm -f /tmp/luci-indexcache* /tmp/luci-indexcache.*
+rm -rf /tmp/luci-modulecache
+exit 0
