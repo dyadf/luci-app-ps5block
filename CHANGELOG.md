@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.4.0-r1 — 2026-10-09
+
+### Fixed (important)
+- **No internet when "Force DNS" was not configured.** 1.2.1 made force-DNS grab *all* of
+  the console's port-53 traffic, including queries aimed at the router, and send it to
+  dnsmasq. On routers where the working resolver is not dnsmasq (podkop/AdGuard own DNS),
+  that broke name resolution for the console entirely. force-DNS again only redirects the
+  console's DNS to **external** servers (`fib daddr type != local`); DNS the console already
+  sends to the router ("Automatic") is left on the router's own resolver path, so general
+  internet is never broken.
+
+### Added
+- **"Force DNS to this server" now takes several servers** (`list dns_server`). With more
+  than one, the console's DNS is spread across them (`numgen`-based DNAT). A set server
+  forces the console's DNS (including "Automatic") onto it; the other IP family still goes
+  to the router. Make sure the servers are reachable — a dead one means no DNS for the
+  console. The status page lists the active target(s).
+
 ## 1.3.0-r1 — 2026-10-09
 
 ### Added

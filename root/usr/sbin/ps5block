@@ -7,7 +7,7 @@
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.3.0"
+VERSION="1.4.0"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
@@ -228,15 +228,26 @@ podkop_routed() {
 		grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}(/([0-9]|[12][0-9]|3[0-2]))?$' | sort -u
 }
 
-# optional: the DNS server the console is forced onto (instead of the router's
-# dnsmasq). Empty = router. Returns a validated IPv4/IPv6 or nothing.
-dns_server() {
-	local s
-	s="$(uci -q get ps5block.main.dns_server)"
-	[ -n "$s" ] || return 1
-	echo "$s" | grep -qE '^([0-9]{1,3}\.){3}[0-9]{1,3}$' && { echo "$s"; return 0; }
-	echo "$s" | grep -qE '^[0-9a-fA-F]{0,4}(:[0-9a-fA-F]{0,4}){2,7}$' && { echo "$s"; return 0; }
-	return 1
+# optional: DNS servers the console is forced onto (instead of the router's
+# dnsmasq). One per line, validated IPv4/IPv6. Empty = router.
+dns_servers() {
+	uci -q get ps5block.main.dns_server | tr ' ' '\n' | awk 'NF' | while read -r s; do
+		echo "$s" | grep -qE '^([0-9]{1,3}\.){3}[0-9]{1,3}$' && { echo "$s"; continue; }
+		echo "$s" | grep -qE '^[0-9a-fA-F]{0,4}(:[0-9a-fA-F]{0,4}){2,7}$' && echo "$s"
+	done
+}
+
+# a dnat target for one family from a server list: a single ip:53, or a
+# numgen-distributed map over several servers (redundancy across them).
+dnat_target() { # <ip|ip6> server...
+	local fam="$1" n i=0 map="" s; shift
+	n=$#
+	if [ "$n" = "1" ]; then
+		[ "$fam" = "ip6" ] && echo "dnat ip6 to [$1]:53" || echo "dnat ip to $1:53"
+		return
+	fi
+	for s in "$@"; do map="$map${map:+, }$i : $s . 53"; i=$((i + 1)); done
+	echo "dnat $fam to numgen random mod $n map { $map }"
 }
 
 # effective strict-DNS scope: all | podkop | off
@@ -263,7 +274,7 @@ ip_in_list() { # ip "cidr list" -> 0 if ip is inside any entry
 }
 
 build_ruleset() {
-	local mode match devs macs u4 u6 d4 d6 pr ds
+	local mode match devs macs u4 u6 d4 d6 pr
 	mode="$(cfg mode mac)"
 	devs="$(lan_devices | awk '{ printf "%s\"%s\"", (n++ ? ", " : ""), $0 }')"
 	[ -n "$devs" ] || devs='"br-lan"'
@@ -300,21 +311,30 @@ build_ruleset() {
 	echo "	chain dns_redirect {"
 	echo "		type nat hook prerouting priority -160; policy accept;"
 	if [ "$(layer force_dns)" = "1" ]; then
-		ds="$(dns_server)"
-		if [ -z "$ds" ]; then
-			# force the console onto the router's dnsmasq
-			echo "		$match meta l4proto { tcp, udp } th dport 53 counter redirect to :53 comment \"force_dns\""
+		local v4s v6s ext dp
+		ext="meta l4proto { tcp, udp } th dport 53 fib daddr type != local"
+		dp="meta l4proto { tcp, udp } th dport 53"
+		v4s="$(dns_servers | grep '\.')"
+		v6s="$(dns_servers | grep ':')"
+		if [ -z "$v4s$v6s" ]; then
+			# no server set: only redirect the console's EXTERNAL DNS to the
+			# router. DNS the console already sends to the router ("Automatic")
+			# is left untouched, so the router's own resolver path keeps working
+			# and general internet is never broken.
+			echo "		$match $ext counter redirect to :53 comment \"force_dns\""
 		else
-			# force the console onto a specified DNS server; the other IP family
-			# still goes to the router so the console cannot escape on it
-			case "$ds" in
-			*:*)
-				echo "		$match meta nfproto ipv6 meta l4proto { tcp, udp } th dport 53 counter dnat ip6 to [$ds]:53 comment \"force_dns\""
-				echo "		$match meta nfproto ipv4 meta l4proto { tcp, udp } th dport 53 counter redirect to :53 comment \"force_dns\"" ;;
-			*)
-				echo "		$match meta nfproto ipv4 meta l4proto { tcp, udp } th dport 53 counter dnat ip to $ds:53 comment \"force_dns\""
-				echo "		$match meta nfproto ipv6 meta l4proto { tcp, udp } th dport 53 counter redirect to :53 comment \"force_dns\"" ;;
-			esac
+			# a server is set: force the console's DNS (incl. router-directed)
+			# onto it; the other IP family still goes to the router.
+			if [ -n "$v4s" ]; then
+				echo "		$match meta nfproto ipv4 $dp counter $(dnat_target ip $v4s) comment \"force_dns\""
+			else
+				echo "		$match meta nfproto ipv4 $ext counter redirect to :53 comment \"force_dns\""
+			fi
+			if [ -n "$v6s" ]; then
+				echo "		$match meta nfproto ipv6 $dp counter $(dnat_target ip6 $v6s) comment \"force_dns\""
+			else
+				echo "		$match meta nfproto ipv6 $ext counter redirect to :53 comment \"force_dns\""
+			fi
 		fi
 	fi
 	echo "	}"
@@ -750,7 +770,8 @@ EOF
 			json_add_boolean enabled "$(layer force_dns)"
 			echo "$cnt" | grep -q '^force_dns ' && json_add_boolean active 1 || json_add_boolean active 0
 			json_add_int packets "$(pk force_dns)"
-			json_add_string server "$(dns_server || echo router)"
+			local dsrv; dsrv="$(dns_servers | tr '\n' ' ' | sed 's/ *$//; s/ /, /g')"
+			json_add_string server "${dsrv:-router}"
 		json_close_object
 		json_add_object dns_strict
 			local sm

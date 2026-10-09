@@ -173,7 +173,7 @@ check "console MAC in set" "setelems consoles | grep -q '$PS5'"
 check "phone MAC not in set" "! setelems consoles | grep -q '$PHONE'"
 check "lan_if = br-lan" "setelems lan_if | grep -q br-lan"
 check "force_dns rule" has_rule force_dns
-check "force_dns redirects all console DNS (even router-directed)" "ruleset | grep 'comment \"force_dns\"' | grep -qv 'fib daddr type'"
+check "force_dns redirects only external DNS (router-directed left alone)" "ruleset | grep 'comment \"force_dns\"' | grep -q 'fib daddr type != local'"
 check "dot rule" has_rule dot
 check "doh4 + doh6 rules" 'has_rule doh4 && has_rule doh6'
 check "l3 rules" 'has_rule l3_v4 && has_rule l3_v6'
@@ -195,17 +195,22 @@ dstate_before="$(cat "$TR/root/etc/ps5block.dns")"
 check "re-apply does not restart dnsmasq" "! grep -q dnsmasq '$TR/svc'"
 check "re-apply does not rewrite dns state" "[ \"\$(cat '$TR/root/etc/ps5block.dns')\" = '$dstate_before' ]"
 
-section "force DNS target (dns_server)"
-check "default: force_dns redirects to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
+section "force DNS target (dns_server, list)"
+check "default: force_dns redirects external DNS to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
+check "default: no DNAT when no server set" "! ruleset | grep 'comment \"force_dns\"' | grep -q dnat"
 check "default: status server = router" "[ \"\$(J '@.layers.force_dns.server')\" = router ]"
-U set ps5block.main.dns_server=9.9.9.9; U commit ps5block; P apply >/dev/null
-check "v4 server: DNAT to it" "ruleset | grep 'comment \"force_dns\"' | grep -q 'dnat ip to 9.9.9.9:53'"
-check "v4 server: ipv6 still forced to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
-check "v4 server: status shows it" "[ \"\$(J '@.layers.force_dns.server')\" = 9.9.9.9 ]"
-U set ps5block.main.dns_server=2620:fe::fe; U commit ps5block; P apply >/dev/null
-check "v6 server: DNAT ip6 to it" "ruleset | grep 'comment \"force_dns\"' | grep -q 'dnat ip6 to \[2620:fe::fe\]:53'"
-U set ps5block.main.dns_server=not-an-ip; U commit ps5block; P apply >/dev/null
-check "invalid server: falls back to router redirect" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53' && ! ruleset | grep 'comment \"force_dns\"' | grep -q dnat"
+U -q delete ps5block.main.dns_server; U add_list ps5block.main.dns_server=9.9.9.9; U commit ps5block; P apply >/dev/null
+check "one v4 server: DNAT to it" "ruleset | grep 'comment \"force_dns\"' | grep -q 'dnat ip to 9.9.9.9:53'"
+check "one v4 server: ipv6 external still to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
+check "one v4 server: status shows it" "[ \"\$(J '@.layers.force_dns.server')\" = 9.9.9.9 ]"
+U add_list ps5block.main.dns_server=1.1.1.1; U commit ps5block; P apply >/dev/null
+check "two v4 servers: numgen map DNAT" "ruleset | grep 'comment \"force_dns\"' | grep -q 'numgen random mod 2 map'"
+check "two v4 servers: status lists both" "J '@.layers.force_dns.server' | grep -q '9.9.9.9, 1.1.1.1'"
+U -q delete ps5block.main.dns_server; U add_list ps5block.main.dns_server=2620:fe::fe; U commit ps5block; P apply >/dev/null
+check "one v6 server: DNAT ip6 to it" "ruleset | grep 'comment \"force_dns\"' | grep -q 'dnat ip6 to \[2620:fe::fe\]:53'"
+check "one v6 server: ipv4 external still to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
+U -q delete ps5block.main.dns_server; U add_list ps5block.main.dns_server=not-an-ip; U commit ps5block; P apply >/dev/null
+check "invalid server ignored: router redirect, no DNAT" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53' && ! ruleset | grep 'comment \"force_dns\"' | grep -q dnat"
 U -q delete ps5block.main.dns_server; U commit ps5block; P apply >/dev/null
 check "cleared: back to router redirect" "[ \"\$(J '@.layers.force_dns.server')\" = router ]"
 

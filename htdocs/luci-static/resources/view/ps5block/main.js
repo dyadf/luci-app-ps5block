@@ -350,8 +350,8 @@ return view.extend({
 
 		o = s.taboption('layers', form.Flag, 'force_dns', _('DNS redirect'), _('Answer every DNS request of the console from the router, even with manual DNS on the console.'));
 		o.default = '1'; o.depends('mode', 'mac');
-		o = s.taboption('layers', form.Value, 'dns_server', _('Force DNS to this server'),
-			_('Send the console\'s DNS to this server instead of the router (overrides podkop/AdGuard). Leave empty to use the router\'s dnsmasq. With a non-router server the built-in DNS block does not apply to the console — blocking then relies on the IP/DoT/DoH layers or that server\'s own filtering.'));
+		o = s.taboption('layers', form.DynamicList, 'dns_server', _('Force DNS to this server'),
+			_('Send the console\'s DNS to these server(s) instead of the router (overrides podkop/AdGuard); with several, queries are spread across them. Leave empty to use the router\'s dnsmasq. Make sure the server(s) are reachable — a dead server here means no DNS for the console. With a non-router server the built-in DNS block does not apply to the console; blocking then relies on the IP/DoT/DoH layers or that server\'s own filtering.'));
 		o.datatype = 'ipaddr';
 		o.placeholder = _('router (dnsmasq)');
 		o.depends('force_dns', '1');

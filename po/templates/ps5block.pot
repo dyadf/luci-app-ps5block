@@ -507,3 +507,6 @@ msgstr ""
 
 msgid "router (dnsmasq)"
 msgstr ""
+
+msgid "Send the console's DNS to these server(s) instead of the router (overrides podkop/AdGuard); with several, queries are spread across them. Leave empty to use the router's dnsmasq. Make sure the server(s) are reachable — a dead server here means no DNS for the console. With a non-router server the built-in DNS block does not apply to the console; blocking then relies on the IP/DoT/DoH layers or that server's own filtering."
+msgstr ""
