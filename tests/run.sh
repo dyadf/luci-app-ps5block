@@ -61,7 +61,8 @@ setup() {
 	# rewrite absolute paths of the installed system into the sandbox
 	for f in usr/sbin/ps5block usr/libexec/rpcd/ps5block etc/uci-defaults/90-luci-ps5block \
 		etc/hotplug.d/dhcp/90-ps5block etc/hotplug.d/iface/90-ps5block; do
-		sed -i -e "1s|^#!/bin/sh|#!$BB ash|" -e "1a . $TR/stubs.sh" \
+		[ -f "$TR/root/$f" ] || continue
+		sed -i -e "1s|^#!/bin/sh|#!$BB ash\n. $TR/stubs.sh|" \
 			-e "s|/usr/share/libubox/jshn.sh|$JSHN|g" \
 			-e "s|/usr/share/ps5block|$TR/root/usr/share/ps5block|g" \
 			-e "s|/var/run/ps5block|$TR/root/var/run/ps5block|g" \
@@ -129,6 +130,21 @@ setup() {
 	echo "Non-authoritative answer:"
 	awk -v h="\$host" -v t="\$type" '\$1 == h && \$2 == t { printf "Name:\t%s\nAddress: %s\n\n", h, \$3 }' "$TR/dns"
 	EOF
+	cat > "$TR/bin/dnsmasq" <<-'EOF'
+	#!/bin/sh
+	cfg=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			-C) cfg="$2"; shift 2 ;;
+			*) shift ;;
+		esac
+	done
+	if [ -n "$cfg" ] && [ -f "$cfg" ]; then
+		pidfile="$(sed -n 's/^pid-file=//p' "$cfg")"
+		[ -n "$pidfile" ] && echo "$$" > "$pidfile"
+	fi
+	exit 0
+	EOF
 	for s in dnsmasq cron rpcd firewall; do
 		printf '#!/bin/sh\necho "%s $*" >> "%s/svc"\n' "$s" "$TR" > "$TR/root/etc/init.d/$s"
 		chmod 755 "$TR/root/etc/init.d/$s"
@@ -139,6 +155,7 @@ setup() {
 	cat > "$TR/stubs.sh" <<-EOF
 	nslookup() { "$TR/bin/nslookup" "\$@"; }
 	logger() { "$TR/bin/logger" "\$@"; }
+	dnsmasq() { "$TR/bin/dnsmasq" "\$@"; }
 	pidof() { return 1; }
 	EOF
 	: > "$TR/svc"
@@ -212,22 +229,24 @@ check "re-apply does not rewrite dns state" "[ \"\$(cat '$TR/root/etc/ps5block.d
 
 section "force DNS target (dns_server, list)"
 check "default: force_dns redirects external DNS to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
-check "default: no DNAT when no server set" "! ruleset | grep 'comment \"force_dns\"' | grep -q dnat"
+check "default: no forwarder when no server set" "[ ! -f '$TR/root/var/run/ps5block/dnsmasq.conf' ]"
 check "default: status server = router" "[ \"\$(J '@.layers.force_dns.server')\" = router ]"
 U -q delete ps5block.main.dns_server; U add_list ps5block.main.dns_server=9.9.9.9; U commit ps5block; P apply >/dev/null
-check "one v4 server: DNAT to it" "ruleset | grep 'comment \"force_dns\"' | grep -q 'dnat ip to 9.9.9.9:53'"
-check "one v4 server: ipv6 external still to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
+check "one v4 server: redirect to dedicated forwarder port 5553" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :5553'"
+check "one v4 server: forwarder config has server 9.9.9.9" "grep -q '^server=9.9.9.9$' '$TR/root/var/run/ps5block/dnsmasq.conf'"
+check "one v4 server: forwarder config has blocking rules" "grep -q 'address=/.*playstation.net/' '$TR/root/var/run/ps5block/dnsmasq.conf'"
 check "one v4 server: status shows it" "[ \"\$(J '@.layers.force_dns.server')\" = 9.9.9.9 ]"
 U add_list ps5block.main.dns_server=1.1.1.1; U commit ps5block; P apply >/dev/null
-check "two v4 servers: numgen map DNAT" "ruleset | grep 'comment \"force_dns\"' | grep -q 'numgen random mod 2 map'"
+check "two v4 servers: forwarder config has both servers" "grep -q '^server=9.9.9.9$' '$TR/root/var/run/ps5block/dnsmasq.conf' && grep -q '^server=1.1.1.1$' '$TR/root/var/run/ps5block/dnsmasq.conf'"
 check "two v4 servers: status lists both" "J '@.layers.force_dns.server' | grep -q '9.9.9.9, 1.1.1.1'"
 U -q delete ps5block.main.dns_server; U add_list ps5block.main.dns_server=2620:fe::fe; U commit ps5block; P apply >/dev/null
-check "one v6 server: DNAT ip6 to it" "ruleset | grep 'comment \"force_dns\"' | grep -q 'dnat ip6 to \[2620:fe::fe\]:53'"
-check "one v6 server: ipv4 external still to the router" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53'"
+check "one v6 server: forwarder config has v6 server" "grep -q '^server=2620:fe::fe$' '$TR/root/var/run/ps5block/dnsmasq.conf'"
+check "one v6 server: redirects to forwarder" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :5553'"
 U -q delete ps5block.main.dns_server; U add_list ps5block.main.dns_server=not-an-ip; U commit ps5block; P apply >/dev/null
-check "invalid server ignored: router redirect, no DNAT" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53' && ! ruleset | grep 'comment \"force_dns\"' | grep -q dnat"
+check "invalid server ignored: router redirect, no forwarder" "ruleset | grep 'comment \"force_dns\"' | grep -q 'redirect to :53' && [ ! -f '$TR/root/var/run/ps5block/dnsmasq.conf' ]"
 U -q delete ps5block.main.dns_server; U commit ps5block; P apply >/dev/null
 check "cleared: back to router redirect" "[ \"\$(J '@.layers.force_dns.server')\" = router ]"
+check "cleared: forwarder stopped and config removed" "[ ! -f '$TR/root/var/run/ps5block/dnsmasq.conf' ]"
 
 section "update server list (L3)"
 cat > "$TR/dns" <<-'EOF'

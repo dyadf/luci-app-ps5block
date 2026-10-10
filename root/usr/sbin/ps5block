@@ -19,6 +19,9 @@ LEASES="${PS5BLOCK_LEASES:-/tmp/dhcp.leases}"
 ARP="${PS5BLOCK_ARP:-/proc/net/arp}"
 # uploaded payloads wait here (tmpfs); each is deleted right after it is sent
 PAYLOAD_DIR="${PS5BLOCK_PAYLOAD_DIR:-/tmp/ps5block-payload}"
+DNS_FWD_PORT=5553
+DNS_FWD_CONF="$STATE_DIR/dnsmasq.conf"
+DNS_FWD_PID="$STATE_DIR/dnsmasq.pid"
 
 # Update server naming: <d|f|h><region>01.ps5.update.playstation.net
 REGIONS="au br cn eu hk jp kr mx ru sa tw uk us"
@@ -243,17 +246,68 @@ dns_servers() {
 	done
 }
 
-# a dnat target for one family from a server list: a single ip:53, or a
-# numgen-distributed map over several servers (redundancy across them).
-dnat_target() { # <ip|ip6> server...
-	local fam="$1" n i=0 map="" s; shift
-	n=$#
-	if [ "$n" = "1" ]; then
-		[ "$fam" = "ip6" ] && echo "dnat ip6 to [$1]:53" || echo "dnat ip to $1:53"
-		return
+dns_forwarder_stop() {
+	local pid i=0
+	if [ -f "$DNS_FWD_PID" ]; then
+		pid="$(cat "$DNS_FWD_PID" 2>/dev/null)"
+		if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+			kill "$pid" 2>/dev/null
+			while kill -0 "$pid" 2>/dev/null && [ "$i" -lt 10 ]; do
+				sleep 0.1 2>/dev/null || sleep 1
+				i=$((i + 1))
+			done
+			kill -9 "$pid" 2>/dev/null
+		fi
+		rm -f "$DNS_FWD_PID"
 	fi
-	for s in "$@"; do map="$map${map:+, }$i : $s . 53"; i=$((i + 1)); done
-	echo "dnat $fam to numgen random mod $n map { $map }"
+	rm -f "$DNS_FWD_CONF"
+}
+
+dns_forwarder_sync() {
+	local srvs s d need_restart=0
+	srvs="$(dns_servers)"
+	if [ "$(cfg enabled 0)" != "1" ] || [ "$(layer force_dns)" != "1" ] || [ -z "$srvs" ]; then
+		dns_forwarder_stop
+		return 0
+	fi
+
+	mkdir -p "$STATE_DIR"
+	{
+		echo "port=$DNS_FWD_PORT"
+		echo "no-resolv"
+		echo "no-poll"
+		echo "no-hosts"
+		echo "cache-size=1000"
+		echo "pid-file=$DNS_FWD_PID"
+		for s in $srvs; do
+			echo "server=$s"
+		done
+		if [ "$(layer dns_block)" = "1" ]; then
+			for d in $(effective_domains | grep -E '[a-z]' | sort -u); do
+				echo "address=/$d/"
+			done
+		fi
+	} > "$DNS_FWD_CONF.tmp"
+
+	if [ ! -f "$DNS_FWD_PID" ] || ! kill -0 "$(cat "$DNS_FWD_PID" 2>/dev/null)" 2>/dev/null; then
+		need_restart=1
+	elif ! cmp -s "$DNS_FWD_CONF.tmp" "$DNS_FWD_CONF"; then
+		need_restart=1
+	fi
+
+	if [ "$need_restart" = "1" ]; then
+		dns_forwarder_stop
+		mv "$DNS_FWD_CONF.tmp" "$DNS_FWD_CONF"
+		if command -v dnsmasq >/dev/null 2>&1; then
+			dnsmasq -C "$DNS_FWD_CONF" >/dev/null 2>&1
+			log "dns forwarder started on port $DNS_FWD_PORT"
+		elif [ -x /usr/sbin/dnsmasq ]; then
+			/usr/sbin/dnsmasq -C "$DNS_FWD_CONF" >/dev/null 2>&1
+			log "dns forwarder started on port $DNS_FWD_PORT"
+		fi
+	else
+		rm -f "$DNS_FWD_CONF.tmp"
+	fi
 }
 
 # effective strict-DNS scope: all | podkop | off
@@ -317,30 +371,21 @@ build_ruleset() {
 	echo "	chain dns_redirect {"
 	echo "		type nat hook prerouting priority -160; policy accept;"
 	if [ "$(layer force_dns)" = "1" ]; then
-		local v4s v6s ext dp
+		local srvs ext dp
 		ext="meta l4proto { tcp, udp } th dport 53 fib daddr type != local"
 		dp="meta l4proto { tcp, udp } th dport 53"
-		v4s="$(dns_servers | grep '\.')"
-		v6s="$(dns_servers | grep ':')"
-		if [ -z "$v4s$v6s" ]; then
+		srvs="$(dns_servers)"
+		if [ -z "$srvs" ]; then
 			# no server set: only redirect the console's EXTERNAL DNS to the
 			# router. DNS the console already sends to the router ("Automatic")
 			# is left untouched, so the router's own resolver path keeps working
 			# and general internet is never broken.
 			echo "		$match $ext counter redirect to :53 comment \"force_dns\""
 		else
-			# a server is set: force the console's DNS (incl. router-directed)
-			# onto it; the other IP family still goes to the router.
-			if [ -n "$v4s" ]; then
-				echo "		$match meta nfproto ipv4 $dp counter $(dnat_target ip $v4s) comment \"force_dns\""
-			else
-				echo "		$match meta nfproto ipv4 $ext counter redirect to :53 comment \"force_dns\""
-			fi
-			if [ -n "$v6s" ]; then
-				echo "		$match meta nfproto ipv6 $dp counter $(dnat_target ip6 $v6s) comment \"force_dns\""
-			else
-				echo "		$match meta nfproto ipv6 $ext counter redirect to :53 comment \"force_dns\""
-			fi
+			# a server is set: redirect console DNS to our dedicated forwarder
+			# which enforces the DNS blocklist and forwards non-blocked queries
+			# to the configured server(s).
+			echo "		$match $dp counter redirect to :$DNS_FWD_PORT comment \"force_dns\""
 		fi
 	fi
 	echo "	}"
@@ -546,6 +591,7 @@ do_apply() {
 	command -v nft >/dev/null 2>&1 || { echo "nft not found" > "$STATE_DIR/error"; log "ERROR: nft not found"; return 1; }
 
 	dns_sync 1
+	dns_forwarder_sync
 	active_macs | join_comma > "$STATE_DIR/consoles"
 	build_ruleset > "$STATE_DIR/ruleset.nft"
 	if ! nft -f "$STATE_DIR/ruleset.nft" 2> "$STATE_DIR/error"; then
@@ -576,7 +622,8 @@ do_apply() {
 	return 0
 }
 
-do_stop() { # runtime only: remove nft table, keep config and dnsmasq entries
+do_stop() { # runtime only: remove nft table and forwarder, keep config and dnsmasq entries
+	dns_forwarder_stop
 	table_exists && nft delete table inet "$TABLE"
 	return 0
 }

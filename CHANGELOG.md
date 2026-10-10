@@ -12,6 +12,15 @@
   router's DNS dispatcher directs traffic away from dnsmasq), the console's connections
   to PSN servers are dropped at the firewall level (`filter prerouting -170`), independent
   of DNS.
+- **DNS blocking preserved when "Force DNS to this server" (`dns_server`) is configured.**
+  Previously, pointing `dns_server` to an external resolver bypassed the router's DNS
+  block rules via direct DNAT, leaving DNS blocking inactive on the console.
+  `ps5block` now launches an isolated, lightweight local dnsmasq forwarder on port 5553
+  whenever custom `dns_server` entries are configured. The forwarder serves the active
+  blocklists (update servers, presets, and custom domains) directly as NXDOMAIN, while
+  forwarding allowed queries to the specified upstream server(s). Redirect rules in
+  nftables send console port-53 queries to this dedicated forwarder, preserving full DNS
+  blocking while honoring the chosen DNS server.
 - **Expanded PSN domain list in `domains.all`.** Added apex domains (`playstation.com`,
   `playstation.net`, `psndl.net`), dedicated download/API endpoints (`feature.api.playstation.com`,
   `gst.prod.dl.playstation.net`, `ena.net.playstation.net`, `post.net.playstation.net`),

@@ -167,7 +167,7 @@ This is meant for your own console on your own network.
 
 By default the console's DNS is redirected to the router's dnsmasq (that is how the DNS block works); only the console's DNS aimed at **external** servers is redirected, so "Automatic" DNS on the console keeps working through the router and general internet is never broken.
 
-To make the console use **specific** resolver(s) instead, set **Protection layers → "Force DNS to this server"** (`list dns_server`) — one or more IPs. The console's port-53 is then sent to them, overriding podkop/AdGuard; with several, queries are spread across them. **Make sure the servers are reachable — a dead server here means no DNS for the console.** With a non-router server the built-in dnsmasq block no longer applies to the console; the update block then relies on the IP (L3) and DoT/DoH layers, or on that server's own filtering. (The "Resolvers" field is unrelated — it only tells the router which DNS to use when looking up the update servers' IPs for the L3 layer.)
+To make the console use **specific** resolver(s) instead, set **Protection layers → "Force DNS to this server"** (`list dns_server`) — one or more IPs. The console's port-53 queries are directed to a dedicated local forwarder that resolves via those server(s), overriding podkop/AdGuard; with several, queries are spread across them. Queries for blocked update domains are still intercepted and blocked by the router. **Make sure the servers are reachable — a dead server here means no DNS for the console.** (The "Resolvers" field is unrelated — it only tells the router which DNS to use when looking up the update servers' IPs for the L3 layer.)
 
 ## Command line
 

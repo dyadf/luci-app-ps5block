@@ -16,11 +16,10 @@ config ps5block 'main'
 	#        (podkop's tproxy would otherwise take DNS before the redirect)
 	option dns_strict 'auto'
 	# force the console's DNS onto specific server(s) instead of the router's
-	# dnsmasq (empty = router). Add one or more IPs to make the console resolve
+	# default dnsmasq (empty = router). Add one or more IPs to make the console resolve
 	# through them, overriding podkop/AdGuard; with several, queries are spread
-	# across them. Note: with a non-router server the built-in dnsmasq block
-	# does not apply to the console - the update block then relies on L3/DoT/DoH
-	# or that server's own filtering. Make sure the server(s) are reachable.
+	# across them. Queries for blocked domains are still blocked by the router.
+	# Make sure the server(s) are reachable - a dead server means no DNS.
 	#list dns_server '1.1.1.1'
 	#list dns_server '8.8.8.8'
 	option block_dot '1'
