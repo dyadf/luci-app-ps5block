@@ -7,7 +7,7 @@
 # (mangle -150) and independent of zapret, so neither proxying nor DPI
 # bypass can carry console update traffic around the block.
 
-VERSION="1.5.0"
+VERSION="1.5.1"
 TABLE="ps5block"
 SHARE="/usr/share/ps5block"
 OUI_FILE="$SHARE/oui.txt"
